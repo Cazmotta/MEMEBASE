@@ -330,13 +330,13 @@ function bindCards(root){
   root.querySelectorAll('.vid-wrap').forEach(el=>el.addEventListener('click',()=>playVideo(el)));
 }
 
-async function fetchVideoUrl(permalink){
+async function fetchVideoInfo(permalink){
   const postUrl=`https://reddit.com${permalink}`;
   const r=await fetch(`${PROXY}?url=${encodeURIComponent(postUrl)}`);
-  if(!r.ok) throw new Error('proxy '+r.status);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'proxy '+r.status)}
   const j=await r.json();
-  if(!j.url) throw new Error('video não encontrado');
-  return j.url;
+  if(!j.video) throw new Error('video não encontrado');
+  return j;
 }
 async function playVideo(el){
   const permalink=el.dataset.permalink;
