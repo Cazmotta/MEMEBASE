@@ -393,9 +393,9 @@ function renderCard(post,fromSaved){
     if(imgUrl) mediaHtml=`<div class="card-media"><span class="media-type-badge">IMG</span><img src="${imgUrl}" loading="lazy" alt="${escHtml(d.title)}"/></div>`;
   } else if(type==='video'){
     const thumb=(d.thumbnail&&d.thumbnail.startsWith('http')?d.thumbnail:(d.preview?.images?.[0]?.source?.url||'').replace(/&amp;/g,'&'));
-    mediaHtml=`<div class="card-media" id="vmedia-${d.id}" style="position:relative;cursor:pointer" onclick="loadVideoPlayer('${d.id}','${encodeURIComponent('https://reddit.com'+d.permalink)}')">
+    mediaHtml=`<div class="card-media vid-thumb" id="vmedia-${d.id}" data-permalink="${escHtml(d.permalink)}" style="position:relative;cursor:pointer">
       ${thumb?`<img src="${thumb}" style="width:100%;display:block;max-height:480px;object-fit:cover;background:var(--bg2)" loading="lazy"/>`:`<div style="height:180px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:32px">▶</div>`}
-      <div id="voverlay-${d.id}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+      <div class="vid-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
         <div style="width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>
       </div>
       <span class="media-type-badge">VID</span>
@@ -433,6 +433,9 @@ function bindCardEvents(container){
   container.querySelectorAll('.share-btn').forEach(btn=>{
     btn.addEventListener('click',e=>{e.stopPropagation();shareToX(btn.dataset.permalink,btn.dataset.title)});
   });
+  container.querySelectorAll('.vid-thumb').forEach(el=>{
+    el.addEventListener('click',()=>loadVideoPlayer(el));
+  });
 }
 
 /* ── SAVE ── */
@@ -458,24 +461,25 @@ function updateSavedBadge(){
 }
 
 /* ── VIDEO PLAYER ── */
-async function loadVideoPlayer(postId, encodedPermalink){
-  const container=document.getElementById('vmedia-'+postId);
-  if(!container) return;
-  const overlay=document.getElementById('voverlay-'+postId);
+async function loadVideoPlayer(container){
+  const postId=container.id.replace('vmedia-','');
+  const permalink=container.dataset.permalink;
+  const overlay=container.querySelector('.vid-overlay');
   if(overlay) overlay.innerHTML=`<div style="width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center"><div class="spinner"></div></div>`;
+  container.classList.remove('vid-thumb');
+  container.style.cursor='default';
   try{
-    const postUrl=decodeURIComponent(encodedPermalink);
-    const api=`${SAVER}?url=${encodeURIComponent(postUrl)}`;
-    const r=await fetch(api);
+    const postUrl=`https://reddit.com${permalink}`;
+    const r=await fetch(`${SAVER}?url=${encodeURIComponent(postUrl)}`);
     if(!r.ok) throw new Error('saver_'+r.status);
     const j=await r.json();
     const vidUrl=j.url||j.hd||j.sd||(j.links&&j.links[0]?.url);
     if(!vidUrl) throw new Error('sem link');
-    container.onclick=null;
-    container.style.cursor='default';
     container.innerHTML=`<video src="${vidUrl}" controls autoplay playsinline style="width:100%;display:block;max-height:480px;background:#000"></video>`;
   }catch(e){
     toast('erro ao carregar vídeo: '+e.message);
+    container.classList.add('vid-thumb');
+    container.style.cursor='pointer';
     if(overlay) overlay.innerHTML=`<div style="width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>`;
   }
 }
