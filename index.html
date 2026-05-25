@@ -324,11 +324,6 @@ function getImageUrl(post){
 }
 
 function getVideoUrl(post){
-  const d=post.data;
-  if(d.is_video&&d.media?.reddit_video?.fallback_url){
-    return d.media.reddit_video.fallback_url.replace(/&amp;/g,'&').split('?')[0];
-  }
-  if(/\.(mp4|webm)(\?|$)/i.test(d.url||'')) return d.url;
   return null;
 }
 
