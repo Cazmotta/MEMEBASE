@@ -4,670 +4,584 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>MEMEBASE</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:#000;--bg1:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;
-  --line:#1e1e1e;--line2:#2a2a2a;--line3:#333;
-  --text:#e8e8e8;--muted:#555;--muted2:#888;--white:#fff;
-  --red:#e53935;--px:16px;
-  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
-  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+  --bg:#0d0d0d;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
+  --b1:#2a2a2a;--b2:#383838;--b3:#484848;
+  --tx:#f0f0f0;--t2:#a0a0a0;--t3:#606060;
+  --acc:#ffffff;--red:#e05c5c;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);
+  --sr:env(safe-area-inset-right,0px);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Montserrat',sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
-#app{height:100%;display:flex;flex-direction:column}
-header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl)+var(--px));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);flex-shrink:0}
-.wordmark{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;letter-spacing:1px;color:var(--muted2)}.wordmark b{color:var(--white)}
-.hdr-right{display:flex;gap:10px}
-.icon-btn{width:40px;height:40px;border-radius:8px;background:var(--bg1);border:1px solid var(--line2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;touch-action:manipulation}
-#tab-bar{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;padding:0 calc(var(--sr)+var(--px)) 0 calc(var(--sl)+var(--px))}
-.tab{flex:1;padding:13px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;touch-action:manipulation}
-.tab.active{color:var(--white);border-bottom-color:var(--white)}
-.tab-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--red);font-size:9px;color:#fff;margin-left:5px;vertical-align:middle}
-.tab-badge.hidden{display:none}
-#sub-filter{display:flex;gap:8px;padding:12px calc(var(--sr)+var(--px)) 12px calc(var(--sl)+var(--px));overflow-x:auto;flex-shrink:0;scrollbar-width:none;border-bottom:1px solid var(--line)}
-#sub-filter::-webkit-scrollbar{display:none}
-.sub-pill{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--line2);background:var(--bg1);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;color:var(--muted2);cursor:pointer;touch-action:manipulation;transition:border-color .15s,color .15s,background .15s}
-.sub-pill.active{border-color:var(--line3);background:var(--bg3);color:var(--white)}
-#sort-bar{display:flex;align-items:center;justify-content:space-between;padding:10px calc(var(--sr)+var(--px)) 10px calc(var(--sl)+var(--px));flex-shrink:0;border-bottom:1px solid var(--line)}
-.sort-btns{display:flex;gap:6px}
-.sort-btn{padding:5px 11px;border-radius:4px;border:1px solid var(--line2);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;color:var(--muted);cursor:pointer;background:none;touch-action:manipulation}
-.sort-btn.active{border-color:var(--line3);color:var(--white);background:var(--bg3)}
-#post-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
-#scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px calc(var(--sr)+var(--px)) calc(var(--sb)+24px) calc(var(--sl)+var(--px))}
-#scroll-area::-webkit-scrollbar{width:2px}#scroll-area::-webkit-scrollbar-thumb{background:var(--line2)}
-#feed-view,#saved-view,#settings-view{display:none}
-#feed-view.active,#saved-view.active,#settings-view.active{display:block}
-.post-card{background:var(--bg1);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
-.card-meta{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
-.sub-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.3px}
-.card-score{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2)}
-.card-title{padding:0 16px 12px;font-size:13px;font-weight:500;color:var(--text);line-height:1.45}
-.card-media img{width:100%;display:block;max-height:500px;object-fit:contain;background:var(--bg2)}
-.vid-wrap{position:relative;cursor:pointer;background:var(--bg2);min-height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.vid-wrap img{width:100%;display:block;max-height:400px;object-fit:cover}
-.vid-play-btn{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.75);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;pointer-events:none}
-.vid-placeholder{width:100%;height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);font-size:40px}
-.media-badge{position:absolute;top:10px;left:10px;padding:3px 8px;border-radius:4px;background:rgba(0,0,0,.8);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.5px;color:var(--muted2)}
-.vid-loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.7);gap:12px;z-index:2}
-.vid-loading-txt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2)}
-.vid-player-wrap{position:relative;background:#000}
-.vid-player-wrap video{width:100%;display:block;max-height:500px;background:#000;outline:none}
-.vid-audio-note{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:6px 12px;background:rgba(0,0,0,.5);text-align:center}
-.vid-error{padding:20px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:2}
-.vid-error a{color:var(--muted2);text-decoration:underline}
-.link-wrap{padding:12px 16px}
-.link-inner{display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;text-decoration:none}
-.link-inner span{font-size:12px;color:var(--muted2);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-actions{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
-.action-btn{display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:6px;border:1px solid var(--line2);background:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;color:var(--muted2);cursor:pointer;touch-action:manipulation;transition:border-color .15s,color .15s;white-space:nowrap;text-decoration:none}
-.action-btn:active,.action-btn:hover{border-color:var(--line3);color:var(--white);background:var(--bg3)}
-.action-btn.saved{border-color:#555;color:var(--white);background:var(--bg3)}
-.action-btn.loading{opacity:.4;pointer-events:none}
-.action-spacer{flex:1}
-.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px}
-.spinner{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);border-top-color:var(--muted2);animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty-msg{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:center;line-height:2}
-.s-section{margin-bottom:28px}.s-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}.s-label::after{content:'';flex:1;height:1px;background:var(--line)}
-.s-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg1);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
-.s-row-label{font-size:13px;color:var(--text)}.s-row-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px}
-.toggle{width:42px;height:24px;border-radius:12px;background:var(--bg3);border:1px solid var(--line2);cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
-.toggle.on{background:#2a2a2a;border-color:#444}.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}.toggle.on::after{transform:translateX(18px);background:var(--white)}
-.sub-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.sub-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1px solid var(--line2);background:var(--bg1);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2)}
-.sub-chip-rm{cursor:pointer;color:var(--muted);font-size:13px;line-height:1;touch-action:manipulation}
-.sub-add-row{display:flex;gap:10px;margin-top:12px}
-.sub-add-row input{flex:1;padding:11px 14px;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none}
-.sub-add-row input:focus{border-color:var(--line3)}
-.btn-block{width:100%;padding:14px;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;outline:none;margin-top:8px;touch-action:manipulation}
-.btn-danger{background:none;border:1px solid #3a1515;color:#c44}
-/* modal overlay for image viewer */
-#img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100;flex-direction:column;align-items:center;justify-content:center}
-#img-modal.open{display:flex}
-#img-modal img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px}
-#img-modal-close{position:absolute;top:calc(var(--st)+14px);right:16px;width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--line2);color:var(--white);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-#img-modal-dl{position:absolute;bottom:calc(var(--sb)+24px);right:16px;padding:12px 20px;border-radius:8px;background:var(--bg3);border:1px solid var(--line2);color:var(--white);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
-#toast{position:fixed;bottom:calc(var(--sb)+24px);left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid var(--line2);border-radius:20px;padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.9);transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:999;pointer-events:none}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column}
+mono{font-family:'JetBrains Mono',monospace}
+
+/* ── Header ── */
+#hdr{
+  padding:calc(var(--st) + 16px) calc(var(--sr) + 20px) 14px calc(var(--sl) + 20px);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);border-bottom:1px solid var(--b1);flex-shrink:0;
+}
+.logo{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;letter-spacing:2px;color:var(--t3)}
+.logo b{color:var(--acc);letter-spacing:2px}
+.hdr-actions{display:flex;gap:8px}
+.icon-btn{
+  width:38px;height:38px;border-radius:var(--r8);
+  background:var(--s2);border:1px solid var(--b1);
+  color:var(--t2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  transition:background .15s,color .15s;touch-action:manipulation;
+}
+.icon-btn:active{background:var(--s3);color:var(--acc)}
+
+/* ── Tabs ── */
+#tabs{
+  display:flex;
+  padding:0 calc(var(--sr) + 20px) 0 calc(var(--sl) + 20px);
+  background:var(--bg);border-bottom:1px solid var(--b1);flex-shrink:0;gap:4px;
+}
+.tab{
+  flex:1;padding:12px 6px 11px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--t3);text-align:center;cursor:pointer;
+  border-bottom:2px solid transparent;transition:color .2s,border-color .2s;
+  touch-action:manipulation;
+}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--red);font-size:8px;color:#fff;
+  margin-left:4px;vertical-align:middle;
+}
+.badge.hide{display:none}
+
+/* ── Sub filter ── */
+#sub-row{
+  display:flex;gap:8px;
+  padding:12px calc(var(--sr) + 20px) 12px calc(var(--sl) + 20px);
+  overflow-x:auto;flex-shrink:0;scrollbar-width:none;
+  background:var(--bg);border-bottom:1px solid var(--b1);
+}
+#sub-row::-webkit-scrollbar{display:none}
+.pill{
+  flex-shrink:0;padding:6px 14px;border-radius:var(--r20);
+  border:1px solid var(--b1);background:var(--s1);
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;
+  color:var(--t2);cursor:pointer;touch-action:manipulation;
+  transition:all .15s;
+}
+.pill.on{border-color:var(--b3);background:var(--s3);color:var(--acc)}
+
+/* ── Sort bar ── */
+#sort-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px calc(var(--sr) + 20px) 10px calc(var(--sl) + 20px);
+  background:var(--bg);border-bottom:1px solid var(--b1);flex-shrink:0;
+}
+.sorts{display:flex;gap:6px}
+.srt{
+  padding:5px 12px;border-radius:var(--r8);
+  border:1px solid var(--b1);
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;
+  color:var(--t3);cursor:pointer;background:none;
+  transition:all .15s;touch-action:manipulation;
+}
+.srt.on{border-color:var(--b3);color:var(--acc);background:var(--s3)}
+#cnt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)}
+
+/* ── Scroll ── */
+#area{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:20px calc(var(--sr) + 20px) calc(var(--sb) + 32px) calc(var(--sl) + 20px);
+}
+#area::-webkit-scrollbar{width:2px}
+#area::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.view{display:none}.view.on{display:block}
+
+/* ── Post card ── */
+.card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r16);
+  margin-bottom:16px;overflow:hidden;
+  transition:border-color .15s;
+}
+.card:active{border-color:var(--b3)}
+.cmeta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 6px;
+}
+.sub-lbl{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--t3);letter-spacing:.3px;
+}
+.score{
+  display:flex;align-items:center;gap:4px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);
+}
+.ctitle{
+  padding:6px 16px 12px;font-size:13px;font-weight:500;
+  color:var(--tx);line-height:1.5;
+}
+.cimg{
+  width:100%;display:block;
+  max-height:540px;object-fit:contain;
+  background:var(--s2);cursor:zoom-in;
+}
+.cimg.error{display:none}
+.img-err{
+  display:none;padding:28px;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);
+}
+.cactions{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 16px;border-top:1px solid var(--b1);
+}
+.abtn{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 12px;border-radius:var(--r8);
+  border:1px solid var(--b1);background:none;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;
+  color:var(--t2);cursor:pointer;touch-action:manipulation;
+  transition:all .15s;white-space:nowrap;text-decoration:none;
+}
+.abtn:active,.abtn:hover{border-color:var(--b3);color:var(--acc);background:var(--s3)}
+.abtn.saved{border-color:var(--b3);color:var(--acc);background:var(--s2)}
+.sp{flex:1}
+
+/* ── Loader ── */
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px}
+.spin{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--b2);border-top-color:var(--t2);animation:rot .75s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.emsg{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);text-align:center;line-height:2.2;white-space:pre-line}
+
+/* ── Settings ── */
+.ss{margin-bottom:28px}
+.slbl{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.2px;
+  color:var(--t3);text-transform:uppercase;
+  display:flex;align-items:center;gap:12px;margin-bottom:12px;
+}
+.slbl::after{content:'';flex:1;height:1px;background:var(--b1)}
+.srow{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--r12);margin-bottom:8px;
+}
+.srow-l{font-size:13px;color:var(--tx)}
+.srow-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);margin-top:3px}
+.tog{
+  width:40px;height:22px;border-radius:11px;
+  background:var(--s3);border:1px solid var(--b1);
+  cursor:pointer;position:relative;flex-shrink:0;transition:background .2s;
+}
+.tog::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--t3);transition:transform .2s,background .2s;
+}
+.tog.on{background:var(--s3);border-color:var(--b3)}
+.tog.on::after{transform:translateX(18px);background:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:var(--r20);
+  border:1px solid var(--b1);background:var(--s1);
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);
+}
+.chip-x{cursor:pointer;color:var(--t3);font-size:14px;line-height:1;touch-action:manipulation}
+.chip-x:hover{color:var(--red)}
+.add-row{display:flex;gap:10px;margin-top:12px}
+.add-row input{
+  flex:1;padding:11px 14px;background:var(--bg);
+  border:1px solid var(--b1);border-radius:var(--r8);
+  color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;
+  transition:border-color .15s;
+}
+.add-row input:focus{border-color:var(--b3)}
+.add-row input::placeholder{color:var(--t3)}
+.btn-danger{
+  width:100%;padding:13px;border-radius:var(--r8);
+  background:none;border:1px solid #3a1515;color:#c44;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;margin-top:6px;touch-action:manipulation;
+  transition:background .15s,border-color .15s;
+}
+.btn-danger:active{background:#1a0808;border-color:#6a2020}
+
+/* ── Image modal ── */
+#modal{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.95);z-index:100;
+  flex-direction:column;align-items:center;justify-content:center;
+}
+#modal.open{display:flex}
+#modal img{max-width:calc(100% - 32px);max-height:88vh;object-fit:contain;border-radius:var(--r8)}
+#modal-close{
+  position:absolute;top:calc(var(--st) + 14px);right:16px;
+  width:40px;height:40px;border-radius:50%;
+  background:var(--s3);border:1px solid var(--b2);
+  color:var(--acc);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+#modal-dl{
+  position:absolute;bottom:calc(var(--sb) + 24px);
+  left:50%;transform:translateX(-50%);
+  padding:11px 24px;border-radius:var(--r20);
+  background:var(--s3);border:1px solid var(--b2);
+  color:var(--acc);font-family:'JetBrains Mono',monospace;font-size:11px;
+  cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;
+  touch-action:manipulation;
+}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:calc(var(--sb) + 28px);left:50%;
+  transform:translateX(-50%) translateY(120px);
+  background:var(--s3);border:1px solid var(--b2);border-radius:var(--r20);
+  padding:10px 22px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx);
+  white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.9);
+  transition:transform .3s cubic-bezier(.22,1,.36,1);z-index:999;pointer-events:none;
+}
 #toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── Settings select ── */
+select{
+  background:var(--s2);border:1px solid var(--b1);color:var(--tx);
+  padding:6px 10px;border-radius:var(--r8);
+  font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;
+}
 </style>
 </head>
 <body>
-<div id="app">
-  <header>
-    <div class="wordmark"><b>MEME</b>BASE</div>
-    <div class="hdr-right">
-      <button class="icon-btn" id="refresh-btn" title="Recarregar">↺</button>
-      <button class="icon-btn" id="cfg-btn" title="Config">⚙</button>
-    </div>
-  </header>
-  <div id="tab-bar">
-    <div class="tab active" data-tab="feed">FEED</div>
-    <div class="tab" data-tab="saved">SALVOS <span class="tab-badge hidden" id="saved-badge"></span></div>
-    <div class="tab" data-tab="settings">CONFIG</div>
+
+<div id="hdr">
+  <div class="logo"><b>MEME</b>BASE</div>
+  <div class="hdr-actions">
+    <button class="icon-btn" id="btn-refresh" title="Recarregar">↺</button>
+    <button class="icon-btn" id="btn-cfg" title="Configurações">⚙</button>
   </div>
-  <div id="sub-filter"></div>
-  <div id="sort-bar">
-    <div class="sort-btns">
-      <button class="sort-btn active" data-sort="hot">hot</button>
-      <button class="sort-btn" data-sort="new">new</button>
-      <button class="sort-btn" data-sort="rising">rising</button>
-      <button class="sort-btn" data-sort="top">top</button>
-    </div>
-    <span id="post-count"></span>
+</div>
+
+<div id="tabs">
+  <div class="tab on" data-t="feed">Feed</div>
+  <div class="tab" data-t="saved">Salvos <span class="badge hide" id="badge"></span></div>
+  <div class="tab" data-t="cfg">Config</div>
+</div>
+
+<div id="sub-row"></div>
+
+<div id="sort-row">
+  <div class="sorts">
+    <button class="srt on" data-s="hot">hot</button>
+    <button class="srt" data-s="new">new</button>
+    <button class="srt" data-s="rising">rising</button>
+    <button class="srt" data-s="top">top</button>
   </div>
-  <div id="scroll-area">
-    <div id="feed-view" class="active"></div>
-    <div id="saved-view"></div>
-    <div id="settings-view">
-      <div style="padding-top:4px">
-        <div class="s-section">
-          <div class="s-label">subreddits</div>
-          <div class="sub-chips" id="sub-chips"></div>
-          <div class="sub-add-row">
-            <input type="text" id="new-sub" placeholder="adicionar subreddit" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none"/>
-            <button class="icon-btn" id="add-sub-btn" style="width:44px;height:44px">+</button>
-          </div>
-        </div>
-        <div class="s-section">
-          <div class="s-label">preferências</div>
-          <div class="s-row">
-            <div><div class="s-row-label">Mostrar NSFW</div><div class="s-row-sub">conteúdo adulto</div></div>
-            <div class="toggle" id="nsfw-toggle"></div>
-          </div>
-          <div class="s-row">
-            <div><div class="s-row-label">Posts por sub</div></div>
-            <select id="limit-select" style="background:var(--bg2);border:1px solid var(--line2);color:var(--text);padding:6px 10px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;outline:none">
-              <option value="10">10</option><option value="25" selected>25</option><option value="50">50</option>
-            </select>
-          </div>
-        </div>
-        <div class="s-section">
-          <div class="s-label">dados</div>
-          <button class="btn-block btn-danger" id="clear-btn">limpar posts salvos</button>
-        </div>
-        <div style="text-align:center;padding:16px 0 8px">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">memebase v2.0 · reddit jsonp</span>
+  <span id="cnt"></span>
+</div>
+
+<div id="area">
+  <div id="vfeed" class="view on"></div>
+  <div id="vsaved" class="view"></div>
+  <div id="vcfg" class="view">
+    <div style="padding-top:4px">
+      <div class="ss">
+        <div class="slbl">Subreddits</div>
+        <div class="chips" id="chips"></div>
+        <div class="add-row">
+          <input id="inp-sub" type="text" placeholder="nome do subreddit" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none"/>
+          <button class="icon-btn" id="btn-add" style="width:44px;height:44px;flex-shrink:0">+</button>
         </div>
       </div>
+      <div class="ss">
+        <div class="slbl">Preferências</div>
+        <div class="srow">
+          <div><div class="srow-l">Mostrar NSFW</div><div class="srow-sub">conteúdo adulto</div></div>
+          <div class="tog" id="tog-nsfw"></div>
+        </div>
+        <div class="srow">
+          <div class="srow-l">Posts por subreddit</div>
+          <select id="sel-limit">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="slbl">Dados</div>
+        <button class="btn-danger" id="btn-clear">Limpar posts salvos</button>
+      </div>
+      <p style="text-align:center;padding:16px 0 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)">memebase v3.1 · só imagens</p>
     </div>
   </div>
 </div>
 
-<!-- Image viewer modal -->
-<div id="img-modal">
-  <button id="img-modal-close">✕</button>
-  <img id="img-modal-img" src="" alt=""/>
-  <button id="img-modal-dl">↓ baixar imagem</button>
+<div id="modal">
+  <button id="modal-close">✕</button>
+  <img id="modal-img" src="" alt=""/>
+  <button id="modal-dl">↓ baixar imagem</button>
 </div>
 
 <div id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════
-   MEMEBASE v2.0
-   Fixes: áudio de vídeo sincronizado, download de imagem via modal
-═══════════════════════════════════════════════ */
+const DEFAULTS = ['eu_nvr','diretodozapzap','botecodoreddit','MemesBrasil','MemesBR','MEMEBRASIL','antimemeBR','ShitpostBR'];
+const LS = k => { try { return localStorage.getItem(k) } catch{ return null } };
+const LSS = (k,v) => { try { localStorage.setItem(k,v) } catch{} };
 
-const DEFAULT_SUBS = ['eu_nvr','diretodozapzap','botecodoreddit','MemesBrasil','MemesBR','MEMEBRASIL','antimemeBR','ShitpostBR'];
+const S = {
+  subs:  JSON.parse(LS('mb3_subs')  || 'null') || [...DEFAULTS],
+  saved: JSON.parse(LS('mb3_saved') || '[]'),
+  cfg:   JSON.parse(LS('mb3_cfg')   || '{"nsfw":false,"limit":25}'),
+  sub:'all', sort:'hot', tab:'feed',
+  posts:[], loading:false,
+};
+const saveSubs  = () => LSS('mb3_subs',  JSON.stringify(S.subs));
+const saveSaved = () => LSS('mb3_saved', JSON.stringify(S.saved));
+const saveCfg   = () => LSS('mb3_cfg',   JSON.stringify(S.cfg));
+
+const $  = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const unesc = s => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+const hasSaved = id => S.saved.some(p => p.data.id === id);
+
+let _tt;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2600);
+}
 
 /* ── JSONP ── */
-let _cbId = 0;
-function jsonp(url, timeout = 10000) {
-  return new Promise((resolve, reject) => {
-    const cb = '__rdp' + (++_cbId);
-    const t = setTimeout(() => { cleanup(); reject(new Error('timeout')) }, timeout);
-    function cleanup() { clearTimeout(t); delete window[cb]; s?.remove() }
-    let s;
-    window[cb] = data => { cleanup(); resolve(data) };
-    s = document.createElement('script');
-    s.onerror = () => { cleanup(); reject(new Error('network error')) };
-    const sep = url.includes('?') ? '&' : '?';
-    s.src = url + sep + 'jsonp=' + cb;
+let _cid = 0;
+function jsonp(url, ms=10000) {
+  return new Promise((res,rej) => {
+    const cb = '__mb' + (++_cid);
+    const t = setTimeout(() => { cleanup(); rej(new Error('timeout')) }, ms);
+    const cleanup = () => { clearTimeout(t); delete window[cb]; s?.remove() };
+    window[cb] = d => { cleanup(); res(d) };
+    const s = document.createElement('script');
+    s.onerror = () => { cleanup(); rej(new Error('erro de rede')) };
+    s.src = url + (url.includes('?')?'&':'?') + 'jsonp=' + cb;
     document.head.appendChild(s);
   });
 }
 
-/* ── State ── */
-const S = {
-  subs:      JSON.parse(localStorage.getItem('mb_subs')  || 'null') || [...DEFAULT_SUBS],
-  saved:     JSON.parse(localStorage.getItem('mb_saved') || '[]'),
-  cfg:       JSON.parse(localStorage.getItem('mb_cfg')   || '{"nsfw":false,"limit":25}'),
-  activeSub: 'all', activeSort: 'hot', activeTab: 'feed',
-  posts: [], loading: false,
-};
-
-/* ── Helpers ── */
-const $ = id => document.getElementById(id);
-let toastT;
-const toast = msg => {
-  const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3000);
-};
-const saveSubs  = () => localStorage.setItem('mb_subs',  JSON.stringify(S.subs));
-const saveSaved = () => localStorage.setItem('mb_saved', JSON.stringify(S.saved));
-const saveCfg   = () => localStorage.setItem('mb_cfg',   JSON.stringify(S.cfg));
-const isSaved   = id => S.saved.some(p => p.data.id === id);
-const fmtScore  = n  => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
-const esc       = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const unesc     = s  => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
-
-/* ── Media utils ── */
-function mediaType(p) {
+/* ── Imagem do post ── */
+function imgOf(p) {
   const d = p.data;
-  if (d.is_video || d.post_hint === 'hosted:video') return 'video';
-  if (/\.(mp4|webm|gifv)(\?|$)/i.test(d.url||'')) return 'video';
-  if (d.post_hint === 'image' || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(d.url||'')) return 'image';
-  if (d.preview?.images?.[0]) return 'image';
-  return 'link';
-}
-
-function imgUrl(p) {
-  const d = p.data;
+  if (d.is_video || d.post_hint==='hosted:video' || d.post_hint==='rich:video') return null;
+  if (/\.(mp4|webm|gifv)(\?|$)/i.test(d.url||'')) return null;
   if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(d.url||'')) return d.url;
-  const src = d.preview?.images?.[0]?.source?.url || '';
-  return src ? unesc(src) : null;
-}
-
-function thumbUrl(p) {
-  const src = p.data.preview?.images?.[0]?.source?.url || '';
+  const src = d.preview?.images?.[0]?.source?.url;
   if (src) return unesc(src);
-  const t = p.data.thumbnail || '';
-  return t.startsWith('http') ? t : null;
+  if (d.post_hint === 'image') return d.url;
+  return null;
 }
 
-/* Extract Reddit video URLs — video + multiple audio candidates */
-function extractVideoSources(d) {
-  const rv = d.media?.reddit_video || d.secure_media?.reddit_video;
-  let videoUrl = null;
-  const audioCandidates = [];
-
-  if (rv) {
-    videoUrl = rv.fallback_url?.split('?')[0] || null;
-    // Reddit stores audio at same base with different suffixes
-    if (videoUrl) {
-      const base = videoUrl.replace(/\/DASH_[^/?#]+/i, '');
-      audioCandidates.push(
-        base + '/DASH_AUDIO_128.mp4',
-        base + '/DASH_audio.mp4',
-        base + '/audio',
-      );
-    }
-  }
-
-  if (!videoUrl && /\.gifv(\?|$)/i.test(d.url||'')) videoUrl = d.url.replace('.gifv','.mp4');
-  if (!videoUrl && /\.(mp4|webm)(\?|$)/i.test(d.url||'')) videoUrl = d.url;
-
-  const pv = d.preview?.reddit_video_preview || d.preview?.images?.[0]?.variants?.mp4?.source;
-  if (!videoUrl && pv?.url) videoUrl = unesc(pv.url);
-
-  return { videoUrl, audioCandidates };
+/* ── Fetch ── */
+async function fetchSub(sub) {
+  const j = await jsonp(`https://www.reddit.com/r/${sub}/${S.sort}.json?limit=${S.cfg.limit||25}&raw_json=1`);
+  return (j.data?.children||[]).filter(p => {
+    if (p.data.stickied) return false;
+    if (!S.cfg.nsfw && p.data.over_18) return false;
+    return imgOf(p) !== null;
+  });
 }
 
-async function resolveVideoSources(postData, permalink) {
-  let { videoUrl, audioCandidates } = extractVideoSources(postData);
-  if (!videoUrl) {
-    // Fetch the post JSON to get fresh data
-    try {
-      const j = await jsonp(`https://www.reddit.com${permalink}.json?raw_json=1`);
-      const fresh = j[0]?.data?.children?.[0]?.data;
-      if (fresh) ({ videoUrl, audioCandidates } = extractVideoSources(fresh));
-    } catch(_) {}
-  }
-  return { videoUrl, audioCandidates };
-}
-
-/* ── Probe a URL via HEAD (no-cors fallback) ── */
-async function urlExists(url) {
-  try {
-    const r = await fetch(url, { method: 'HEAD', mode: 'cors' });
-    return r.ok;
-  } catch {
-    // cors blocked — assume it might exist and let the audio element decide
-    return true;
-  }
-}
-
-/* ── Fetch feed ── */
-async function fetchSub(sub, sort, limit) {
-  const url = `https://www.reddit.com/r/${sub}/${sort}.json?limit=${limit}&raw_json=1`;
-  const j = await jsonp(url);
-  return (j.data?.children || []).filter(p =>
-    !p.data.stickied && (S.cfg.nsfw || !p.data.over_18)
-  );
-}
-
-async function loadFeed() {
+async function load() {
   if (S.loading) return;
   S.loading = true;
-  $('feed-view').innerHTML = `<div class="loader"><div class="spinner"></div><span class="empty-msg">carregando…</span></div>`;
+  $('vfeed').innerHTML = `<div class="loader"><div class="spin"></div><span class="emsg">carregando…</span></div>`;
   S.posts = [];
   try {
-    const subs = S.activeSub === 'all' ? S.subs : [S.activeSub];
-    const lim  = Number(S.cfg.limit) || 25;
-    const res  = await Promise.allSettled(subs.map(s => fetchSub(s, S.activeSort, lim)));
-    let failed = 0;
-    res.forEach(r => {
-      if (r.status === 'fulfilled') S.posts.push(...r.value);
-      else failed++;
-    });
-    S.posts.sort((a, b) => b.data.score - a.data.score);
-    if (!S.posts.length && failed === subs.length) throw new Error('todos os subs falharam');
+    const subs = S.sub==='all' ? S.subs : [S.sub];
+    const all = await Promise.allSettled(subs.map(fetchSub));
+    all.forEach(r => { if (r.status==='fulfilled') S.posts.push(...r.value) });
+    S.posts.sort((a,b) => b.data.score - a.data.score);
     renderFeed();
   } catch(e) {
-    $('feed-view').innerHTML = `<div class="loader"><span class="empty-msg">erro ao carregar<br>${esc(e.message)}</span></div>`;
+    $('vfeed').innerHTML = `<div class="loader"><span class="emsg">erro ao carregar\n${esc(e.message)}</span></div>`;
   }
   S.loading = false;
 }
 
-/* ── Render ── */
+/* ── Cards ── */
+function cardHtml(p) {
+  const d = p.data, url = imgOf(p);
+  if (!url) return '';
+  const sv = hasSaved(d.id);
+  return `<div class="card">
+    <div class="cmeta">
+      <span class="sub-lbl">r/${esc(d.subreddit)}</span>
+      <span class="score">▲ ${fmt(d.score)}</span>
+    </div>
+    <div class="ctitle">${esc(d.title)}</div>
+    <img class="cimg" src="${esc(url)}" loading="lazy" data-full="${esc(url)}" alt=""/>
+    <div class="img-err" id="ie-${d.id}">imagem indisponível</div>
+    <div class="cactions">
+      <button class="abtn btn-sv${sv?' saved':''}" data-id="${d.id}">${sv?'★ salvo':'☆ salvar'}</button>
+      <button class="abtn btn-dl" data-url="${esc(url)}" data-id="${d.id}">↓ img</button>
+      <div class="sp"></div>
+      <a class="abtn" href="https://reddit.com${esc(d.permalink)}" target="_blank" rel="noopener">↗ reddit</a>
+    </div>
+  </div>`;
+}
+
+function bind(root) {
+  root.querySelectorAll('.cimg').forEach(img => {
+    img.addEventListener('click', () => openModal(img.dataset.full));
+    img.addEventListener('error', () => {
+      const id = img.closest('.card')?.querySelector('.btn-sv')?.dataset?.id;
+      img.classList.add('error');
+      if (id) { const e=$('ie-'+id); if(e) e.style.display='block' }
+    });
+  });
+  root.querySelectorAll('.btn-sv').forEach(b => b.addEventListener('click', () => toggleSave(b.dataset.id, b)));
+  root.querySelectorAll('.btn-dl').forEach(b => b.addEventListener('click', () => dlImg(b.dataset.url, b.dataset.id)));
+}
+
 function renderFeed() {
-  $('post-count').textContent = `${S.posts.length} posts`;
+  $('cnt').textContent = S.posts.length + ' imgs';
   if (!S.posts.length) {
-    $('feed-view').innerHTML = `<div class="loader"><span class="empty-msg">nenhum post encontrado</span></div>`;
+    $('vfeed').innerHTML = `<div class="loader"><span class="emsg">nenhuma imagem encontrada</span></div>`;
     return;
   }
-  $('feed-view').innerHTML = S.posts.map(cardHtml).join('');
-  bindCards($('feed-view'));
+  $('vfeed').innerHTML = S.posts.map(cardHtml).join('');
+  bind($('vfeed'));
 }
 
 function renderSaved() {
   updateBadge();
   if (!S.saved.length) {
-    $('saved-view').innerHTML = `<div class="loader"><span class="empty-msg">nada salvo ainda.\nsalve posts do feed.</span></div>`;
+    $('vsaved').innerHTML = `<div class="loader"><span class="emsg">nada salvo ainda\nsalve imagens do feed</span></div>`;
     return;
   }
-  $('saved-view').innerHTML = S.saved.slice().reverse().map(cardHtml).join('');
-  bindCards($('saved-view'));
+  $('vsaved').innerHTML = S.saved.slice().reverse().map(cardHtml).join('');
+  bind($('vsaved'));
 }
 
-function cardHtml(p) {
-  const d = p.data, type = mediaType(p), saved = isSaved(d.id);
-  const permalink = `https://reddit.com${d.permalink}`;
-  let media = '';
-
-  if (type === 'image') {
-    const url = imgUrl(p);
-    media = url
-      ? `<div class="card-media"><img src="${esc(url)}" loading="lazy" data-full="${esc(url)}" class="img-clickable" style="cursor:zoom-in"/></div>`
-      : '';
-  } else if (type === 'video') {
-    const thumb = thumbUrl(p);
-    media = `<div class="card-media">
-      <div class="vid-wrap" data-permalink="${esc(d.permalink)}" data-id="${esc(d.id)}">
-        ${thumb ? `<img src="${esc(thumb)}" loading="lazy"/>` : `<div class="vid-placeholder">🎬</div>`}
-        <div class="vid-play-btn">▶</div>
-        <span class="media-badge">VÍD</span>
-      </div></div>`;
-  } else {
-    const thumb = d.thumbnail?.startsWith('http')
-      ? `<img src="${esc(d.thumbnail)}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy"/>`
-      : `<span style="font-size:20px">🔗</span>`;
-    media = `<div class="link-wrap"><a class="link-inner" href="${esc(d.url)}" target="_blank" rel="noopener">${thumb}<span>${esc(d.domain||d.url||'link')}</span></a></div>`;
-  }
-
-  return `<div class="post-card" data-id="${d.id}">
-    <div class="card-meta">
-      <span class="sub-tag">r/${esc(d.subreddit)}</span>
-      <span class="card-score">▲ ${fmtScore(d.score)}</span>
-    </div>
-    <div class="card-title">${esc(d.title)}</div>
-    ${media}
-    <div class="card-actions">
-      <button class="action-btn btn-save${saved?' saved':''}" data-id="${d.id}">${saved ? '★ salvo' : '☆ salvar'}</button>
-      ${type === 'image' ? `<button class="action-btn btn-img-dl" data-id="${d.id}">↓ img</button>` : ''}
-      ${type === 'video' ? `<button class="action-btn btn-vid-dl" data-id="${d.id}" data-permalink="${esc(d.permalink)}">↓ vid</button>` : ''}
-      <div class="action-spacer"></div>
-      <button class="action-btn btn-share" data-permalink="${esc(d.permalink)}" data-title="${esc(d.title)}">𝕏</button>
-      <a class="action-btn" href="${esc(permalink)}" target="_blank" rel="noopener">↗</a>
-    </div>
-  </div>`;
+/* ── Modal ── */
+let _murl = null;
+function openModal(url) {
+  _murl = url;
+  $('modal-img').src = url;
+  $('modal').classList.add('open');
 }
+$('modal-close').onclick = () => $('modal').classList.remove('open');
+$('modal').addEventListener('click', e => { if(e.target===$('modal')) $('modal').classList.remove('open') });
+$('modal-dl').onclick = () => { if(_murl) dlImg(_murl) };
 
-function bindCards(root) {
-  root.querySelectorAll('.btn-save').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); toggleSave(b.dataset.id, b) }));
-  root.querySelectorAll('.btn-img-dl').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); dlImage(b) }));
-  root.querySelectorAll('.btn-vid-dl').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); dlVideo(b) }));
-  root.querySelectorAll('.btn-share').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); shareX(b.dataset.permalink, b.dataset.title) }));
-  root.querySelectorAll('.vid-wrap').forEach(el =>
-    el.addEventListener('click', () => playVideo(el)));
-  root.querySelectorAll('.img-clickable').forEach(img =>
-    img.addEventListener('click', () => openImgModal(img.dataset.full)));
-}
-
-/* ═══════════════════════════
-   IMAGE MODAL + DOWNLOAD
-═══════════════════════════ */
-let _currentImgUrl = null;
-
-function openImgModal(url) {
-  _currentImgUrl = url;
-  $('img-modal-img').src = url;
-  $('img-modal').classList.add('open');
-}
-$('img-modal-close').addEventListener('click', () => $('img-modal').classList.remove('open'));
-$('img-modal').addEventListener('click', e => { if (e.target === $('img-modal')) $('img-modal').classList.remove('open') });
-
-$('img-modal-dl').addEventListener('click', async () => {
-  if (!_currentImgUrl) return;
-  await downloadUrl(_currentImgUrl, 'meme.jpg');
-});
-
-function dlImage(btn) {
-  const post = S.posts.find(x => x.data.id === btn.dataset.id) || S.saved.find(x => x.data.id === btn.dataset.id);
-  if (!post) return;
-  const url = imgUrl(post);
-  if (!url) { toast('url não encontrada'); return; }
-  openImgModal(url); // open modal so user can tap "baixar" or long-press
-}
-
-/* ─── Universal download helper ─── */
-async function downloadUrl(url, filename) {
+/* ── Download ── */
+async function dlImg(url, id) {
   toast('baixando…');
+  const ext = url.split('.').pop().split('?')[0].toLowerCase();
+  const name = 'meme' + (id?'_'+id:'') + '.' + (/^(jpg|jpeg|png|gif|webp)$/.test(ext)?ext:'jpg');
   try {
-    // Try fetch → blob → anchor (works when CORS is open)
-    const r = await fetch(url, { mode: 'cors' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const r = await fetch(url, {mode:'cors'});
+    if(!r.ok) throw new Error();
     const blob = await r.blob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    a.download = name;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 2000);
     toast('download concluído ✓');
   } catch {
-    // Reddit blocks CORS downloads — open in new tab as fallback
     window.open(url, '_blank', 'noopener');
     toast('aberto em nova aba — salve com long-press');
   }
 }
 
-/* ═══════════════════════════
-   VIDEO PLAYBACK WITH AUDIO
-   Strategy:
-   1. Load video in <video> (muted so autoplay works)
-   2. In parallel, probe audio URL candidates via HEAD
-   3. Sync <audio> element to video play/pause/seek
-   4. On first user interaction unmute video
-═══════════════════════════ */
-async function playVideo(el) {
-  const { permalink, id } = el.dataset;
-  el.innerHTML = `<div class="vid-loading-overlay"><div class="spinner"></div><span class="vid-loading-txt">buscando vídeo…</span></div>`;
-  el.style.cursor = 'default';
-
-  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
-
-  try {
-    const { videoUrl, audioCandidates } = await resolveVideoSources(post?.data || {}, permalink);
-    if (!videoUrl) throw new Error('URL de vídeo não encontrada');
-
-    // Build player HTML
-    const wrapper = document.createElement('div');
-    wrapper.className = 'vid-player-wrap';
-    wrapper.innerHTML = `
-      <video playsinline preload="auto"
-        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
-      <div class="vid-audio-note" id="an_${id}">🔇 toque no vídeo para ativar o áudio</div>`;
-
-    el.parentElement.replaceChild(wrapper, el);
-
-    const vid  = wrapper.querySelector('video');
-    const note = wrapper.querySelector('.vid-audio-note');
-
-    // Set video source and start playing muted
-    vid.src = videoUrl;
-    vid.muted = true;
-    vid.controls = true;
-    try { await vid.play() } catch(_) {}
-
-    // ── Audio sync ──
-    // We try each audio candidate and use the first that loads
-    let aud = null;
-    let audioReady = false;
-
-    const tryAudio = async () => {
-      for (const audioUrl of audioCandidates) {
-        const exists = await urlExists(audioUrl);
-        if (!exists) continue;
-
-        const a = new Audio();
-        a.src = audioUrl;
-        a.preload = 'auto';
-        a.volume = vid.volume;
-        a.muted = true; // start muted
-
-        const loaded = await new Promise(resolve => {
-          a.addEventListener('canplay', () => resolve(true), { once: true });
-          a.addEventListener('error',   () => resolve(false), { once: true });
-          setTimeout(() => resolve(false), 5000);
-          a.load();
-        });
-
-        if (loaded) { aud = a; break }
-      }
-
-      if (!aud) {
-        note.textContent = '(sem áudio separado)';
-        return;
-      }
-
-      audioReady = true;
-      note.textContent = '🔇 toque no vídeo para ativar o áudio';
-
-      // Sync helpers
-      const syncTime = () => {
-        if (Math.abs(aud.currentTime - vid.currentTime) > 0.3)
-          aud.currentTime = vid.currentTime;
-      };
-      vid.addEventListener('play',        () => { syncTime(); aud.play().catch(()=>{}) });
-      vid.addEventListener('pause',       () => aud.pause());
-      vid.addEventListener('seeked',      () => { aud.currentTime = vid.currentTime });
-      vid.addEventListener('ratechange',  () => { aud.playbackRate = vid.playbackRate });
-      vid.addEventListener('volumechange',() => { if (!aud.muted) { aud.volume = vid.volume } });
-      vid.addEventListener('ended',       () => aud.pause());
-
-      // Sync current position
-      if (!vid.paused) { aud.currentTime = vid.currentTime; aud.play().catch(()=>{}) }
-    };
-
-    tryAudio(); // non-blocking
-
-    // ── Unmute on first user tap ──
-    let unmuted = false;
-    const unmute = () => {
-      if (unmuted) return;
-      unmuted = true;
-      vid.muted = false;
-      if (aud && audioReady) {
-        aud.muted = false;
-        aud.volume = 1;
-        aud.currentTime = vid.currentTime;
-        if (!vid.paused) aud.play().catch(()=>{});
-      }
-      note.textContent = audioReady ? '🔊 áudio ativo' : '(sem áudio separado)';
-      setTimeout(() => { note.style.display = 'none' }, 2000);
-    };
-    wrapper.addEventListener('click', unmute, { once: true });
-
-  } catch(e) {
-    el.innerHTML = `<div class="vid-error">
-      Reprodução indisponível aqui.<br>
-      <a href="https://reddit.com${permalink}" target="_blank" rel="noopener">▶ Abrir no Reddit</a>
-    </div>`;
-    toast('erro: ' + e.message);
-  }
-}
-
-/* ── Video download ── */
-async function dlVideo(btn) {
-  const { id, permalink } = btn.dataset;
-  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
-  if (!post) return;
-  btn.classList.add('loading'); const orig = btn.textContent; btn.textContent = '…';
-  try {
-    const { videoUrl } = await resolveVideoSources(post.data, permalink);
-    if (!videoUrl) throw new Error('URL não encontrada');
-    await downloadUrl(videoUrl, `meme_${id}.mp4`);
-  } catch(e) { toast('erro: ' + e.message) }
-  btn.classList.remove('loading'); btn.textContent = orig;
-}
-
-/* ── Save / Share ── */
+/* ── Save ── */
 function toggleSave(id, btn) {
-  const p = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
-  if (!p) return;
-  if (isSaved(id)) {
-    S.saved = S.saved.filter(x => x.data.id !== id);
-    btn.textContent = '☆ salvar'; btn.classList.remove('saved'); toast('removido');
+  const p = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
+  if(!p) return;
+  if(hasSaved(id)) {
+    S.saved = S.saved.filter(x=>x.data.id!==id);
+    btn.textContent='☆ salvar'; btn.classList.remove('saved'); toast('removido');
   } else {
-    S.saved.push(p); btn.textContent = '★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
+    S.saved.push(p); btn.textContent='★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
   }
   saveSaved(); updateBadge();
 }
 function updateBadge() {
-  const b = $('saved-badge'); b.textContent = S.saved.length;
-  S.saved.length ? b.classList.remove('hidden') : b.classList.add('hidden');
-}
-function shareX(permalink, title) {
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title+'\n\nhttps://reddit.com'+permalink)}`, '_blank', 'noopener');
+  const b=$('badge'); b.textContent=S.saved.length;
+  S.saved.length ? b.classList.remove('hide') : b.classList.add('hide');
 }
 
 /* ── Sub filter ── */
 function renderFilter() {
-  const el = $('sub-filter');
-  const pills = [{ l: 'tudo', v: 'all' }, ...S.subs.map(s => ({ l: 'r/'+s, v: s }))];
-  el.innerHTML = pills.map(p =>
-    `<div class="sub-pill${p.v === S.activeSub ? ' active' : ''}" data-v="${p.v}">${p.l}</div>`
-  ).join('');
-  el.querySelectorAll('.sub-pill').forEach(pill =>
-    pill.addEventListener('click', () => { S.activeSub = pill.dataset.v; renderFilter(); loadFeed() }));
+  const el = $('sub-row');
+  el.innerHTML = [{l:'Tudo',v:'all'},...S.subs.map(s=>({l:'r/'+s,v:s}))]
+    .map(p=>`<div class="pill${p.v===S.sub?' on':''}" data-v="${p.v}">${p.l}</div>`)
+    .join('');
+  el.querySelectorAll('.pill').forEach(p =>
+    p.addEventListener('click', () => { S.sub=p.dataset.v; renderFilter(); load() }));
 }
 
 /* ── Settings ── */
-function renderSettings() {
-  $('sub-chips').innerHTML = S.subs.map(s =>
-    `<div class="sub-chip"><span>r/${s}</span><span class="sub-chip-rm" data-s="${s}">✕</span></div>`
+function renderCfg() {
+  $('chips').innerHTML = S.subs.map(s =>
+    `<div class="chip"><span>r/${s}</span><span class="chip-x" data-s="${s}">✕</span></div>`
   ).join('');
-  $('sub-chips').querySelectorAll('.sub-chip-rm').forEach(b =>
+  $('chips').querySelectorAll('.chip-x').forEach(b =>
     b.addEventListener('click', () => {
-      S.subs = S.subs.filter(x => x !== b.dataset.s);
-      saveSubs(); renderSettings(); renderFilter();
-      toast('r/'+b.dataset.s+' removido');
+      S.subs = S.subs.filter(x=>x!==b.dataset.s);
+      saveSubs(); renderCfg(); renderFilter(); toast('r/'+b.dataset.s+' removido');
     }));
-  $('nsfw-toggle').className = 'toggle' + (S.cfg.nsfw ? ' on' : '');
-  $('limit-select').value = String(S.cfg.limit || 25);
+  $('tog-nsfw').className = 'tog' + (S.cfg.nsfw?' on':'');
+  $('sel-limit').value = String(S.cfg.limit||25);
 }
 
 /* ── Tabs ── */
-function switchTab(tab) {
-  S.activeTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  $('feed-view').classList.toggle('active',     tab === 'feed');
-  $('saved-view').classList.toggle('active',    tab === 'saved');
-  $('settings-view').classList.toggle('active', tab === 'settings');
-  $('sub-filter').style.display = tab === 'feed' ? 'flex' : 'none';
-  $('sort-bar').style.display   = tab === 'feed' ? 'flex' : 'none';
-  if (tab === 'saved')    renderSaved();
-  if (tab === 'settings') renderSettings();
+function switchTab(t) {
+  S.tab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.t===t));
+  ['vfeed','vsaved','vcfg'].forEach(id => $('v'+id.slice(1)) );
+  $('vfeed').classList.toggle('on', t==='feed');
+  $('vsaved').classList.toggle('on', t==='saved');
+  $('vcfg').classList.toggle('on', t==='cfg');
+  $('sub-row').style.display  = t==='feed' ? 'flex' : 'none';
+  $('sort-row').style.display = t==='feed' ? 'flex' : 'none';
+  if(t==='saved') renderSaved();
+  if(t==='cfg') renderCfg();
 }
 
-/* ── Wire up ── */
-document.querySelectorAll('.tab').forEach(t =>
-  t.addEventListener('click', () => switchTab(t.dataset.tab)));
-document.querySelectorAll('.sort-btn').forEach(b =>
-  b.addEventListener('click', () => {
-    S.activeSort = b.dataset.sort;
-    document.querySelectorAll('.sort-btn').forEach(x =>
-      x.classList.toggle('active', x.dataset.sort === S.activeSort));
-    loadFeed();
-  }));
-$('refresh-btn').addEventListener('click', loadFeed);
-$('cfg-btn').addEventListener('click', () => switchTab('settings'));
-$('nsfw-toggle').addEventListener('click', () => {
-  S.cfg.nsfw = !S.cfg.nsfw; saveCfg(); renderSettings();
-  toast('nsfw ' + (S.cfg.nsfw ? 'ativado' : 'desativado'));
+/* ── Eventos ── */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', ()=>switchTab(t.dataset.t)));
+document.querySelectorAll('.srt').forEach(b => b.addEventListener('click', () => {
+  S.sort=b.dataset.s;
+  document.querySelectorAll('.srt').forEach(x=>x.classList.toggle('on',x.dataset.s===S.sort));
+  load();
+}));
+$('btn-refresh').addEventListener('click', load);
+$('btn-cfg').addEventListener('click', ()=>switchTab('cfg'));
+$('tog-nsfw').addEventListener('click', ()=>{ S.cfg.nsfw=!S.cfg.nsfw; saveCfg(); renderCfg(); toast('nsfw '+(S.cfg.nsfw?'ativado':'desativado')) });
+$('sel-limit').addEventListener('change', e=>{ S.cfg.limit=Number(e.target.value); saveCfg() });
+$('btn-add').addEventListener('click', ()=>{
+  const v=$('inp-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
+  if(!v){return}
+  if(S.subs.includes(v)){toast('já existe');return}
+  S.subs.push(v); saveSubs(); renderCfg(); renderFilter();
+  $('inp-sub').value=''; toast('r/'+v+' adicionado');
 });
-$('limit-select').addEventListener('change', e => { S.cfg.limit = Number(e.target.value); saveCfg() });
-$('add-sub-btn').addEventListener('click', () => {
-  const v = $('new-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
-  if (!v) return;
-  if (S.subs.includes(v)) { toast('já existe'); return }
-  S.subs.push(v); saveSubs(); renderSettings(); renderFilter();
-  $('new-sub').value = ''; toast('r/'+v+' adicionado');
-});
-$('new-sub').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-sub-btn').click() });
-$('clear-btn').addEventListener('click', () => {
-  if (!confirm('Limpar todos os posts salvos?')) return;
-  S.saved = []; saveSaved(); updateBadge(); toast('salvos apagados');
+$('inp-sub').addEventListener('keydown', e=>{ if(e.key==='Enter') $('btn-add').click() });
+$('btn-clear').addEventListener('click', ()=>{
+  if(!confirm('Limpar todos os posts salvos?')) return;
+  S.saved=[]; saveSaved(); updateBadge(); toast('salvos apagados');
 });
 
 /* ── Init ── */
-updateBadge(); renderFilter(); loadFeed();
+updateBadge(); renderFilter(); load();
 </script>
 </body>
 </html>
