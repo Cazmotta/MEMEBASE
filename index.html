@@ -363,22 +363,38 @@ async function playVideo(el) {
     const aud   = wrap.querySelector('audio');
 
     if (aud) {
-      /* Sync audio to video */
-      const sync = () => { if (Math.abs(aud.currentTime - vid.currentTime) > 0.25) aud.currentTime = vid.currentTime; };
-      vid.addEventListener('play',   () => { sync(); aud.play().catch(()=>{}) });
-      vid.addEventListener('pause',  () => aud.pause());
-      vid.addEventListener('seeked', () => { aud.currentTime = vid.currentTime });
-      vid.addEventListener('ratechange', () => { aud.playbackRate = vid.playbackRate });
-      vid.addEventListener('volumechange', () => { aud.volume = vid.volume; aud.muted = vid.muted });
-      vid.addEventListener('timeupdate', sync);
+      let audReady = false;
 
-      // Check audio actually exists (404 = no separate audio stream)
-      const head = await fetch(audioUrl, {method:'HEAD'}).catch(()=>null);
-      if (!head || !head.ok) { aud.remove() } // silent gif/clip — no audio track
+      // If audio 404s or errors, just remove it silently
+      aud.addEventListener('error', () => { aud.remove() }, { once: true });
+
+      // Once audio can play, mark as ready
+      aud.addEventListener('canplay', () => { audReady = true }, { once: true });
+
+      const sync = () => {
+        if (!audReady) return;
+        if (Math.abs(aud.currentTime - vid.currentTime) > 0.3) aud.currentTime = vid.currentTime;
+      };
+
+      vid.addEventListener('play', () => {
+        if (!audReady) return;
+        aud.currentTime = vid.currentTime;
+        aud.play().catch(()=>{});
+      });
+      vid.addEventListener('pause',       () => aud.pause());
+      vid.addEventListener('seeked',      () => { if (audReady) aud.currentTime = vid.currentTime });
+      vid.addEventListener('ratechange',  () => { aud.playbackRate = vid.playbackRate });
+      vid.addEventListener('volumechange',() => { aud.volume = vid.volume; aud.muted = vid.muted });
+      vid.addEventListener('timeupdate',  sync);
+
+      // Start loading audio now
+      aud.load();
     }
 
     vid.src = videoUrl;
-    vid.play().catch(()=>{});
+    // Unmuted — audio element handles the sound
+    vid.muted = false;
+    vid.play().catch(()=>{ vid.muted = true; vid.play().catch(()=>{}) });
 
   } catch(e) {
     el.innerHTML = `<div class="vid-error">
