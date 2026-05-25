@@ -392,9 +392,24 @@ async function playVideo(el) {
     }
 
     vid.src = videoUrl;
-    // Unmuted — audio element handles the sound
-    vid.muted = false;
-    vid.play().catch(()=>{ vid.muted = true; vid.play().catch(()=>{}) });
+    vid.muted = true; // start muted so autoplay is allowed
+    vid.play().catch(()=>{});
+
+    // As soon as user interacts with the video, unmute both
+    const unmute = () => {
+      vid.muted = false;
+      if (audReady) { aud.muted = false; aud.volume = 1; }
+      wrap.removeEventListener('click', unmute);
+    };
+    wrap.addEventListener('click', unmute);
+
+    // Also unmute automatically once audio is loaded and user has already interacted
+    aud?.addEventListener('canplay', () => {
+      audReady = true;
+      // try to unmute silently — browsers allow if user already touched the page
+      vid.muted = false;
+      if (aud) { aud.muted = false; aud.volume = 1; aud.play().catch(()=>{}); }
+    }, { once: true });
 
   } catch(e) {
     el.innerHTML = `<div class="vid-error">
