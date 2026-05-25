@@ -331,13 +331,62 @@ function bindCards(root) {
 }
 
 /* ── Video playback ─────────────────────────────────────── */
-/* Derive audio URL from a Reddit video fallback URL.
-   Reddit stores audio at the same base path with DASH_AUDIO_128.mp4 or audio. */
 function audioUrlFromVideo(videoUrl) {
-  // e.g. https://v.redd.it/XXXX/DASH_720.mp4  →  https://v.redd.it/XXXX/DASH_AUDIO_128.mp4
-  const base = videoUrl.replace(/\/DASH_[^/]+\.mp4$/i, '');
-  if (base === videoUrl) return null; // pattern didn't match
+  const base = videoUrl.replace(/\/DASH_[^/?]+/i, '');
+  if (base === videoUrl) return null;
   return base + '/DASH_AUDIO_128.mp4';
+}
+
+/* Fetch an ArrayBuffer via JSONP-style XHR to avoid CORS on binary */
+function fetchBuf(url) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.responseType = 'arraybuffer';
+    x.onload  = () => x.status < 400 ? resolve(x.response) : reject(new Error('HTTP '+x.status));
+    x.onerror = () => reject(new Error('network'));
+    x.send();
+  });
+}
+
+/* Use MediaSource to mux video+audio into one <video> element */
+async function muxIntoVideo(vid, videoUrl, audioUrl) {
+  if (!window.MediaSource) throw new Error('MediaSource não suportado');
+
+  const ms = new MediaSource();
+  vid.src = URL.createObjectURL(ms);
+
+  await new Promise(r => ms.addEventListener('sourceopen', r, {once:true}));
+
+  // Probe codecs — Reddit uses avc1/mp4a
+  const vMime = 'video/mp4; codecs="avc1.42E01E"';
+  const aMime = 'audio/mp4; codecs="mp4a.40.2"';
+  const canV  = MediaSource.isTypeSupported(vMime);
+  const canA  = audioUrl && MediaSource.isTypeSupported(aMime);
+
+  if (!canV) throw new Error('codec não suportado');
+
+  const vSrc = ms.addSourceBuffer(vMime);
+  const aSrc = canA ? ms.addSourceBuffer(aMime) : null;
+
+  async function appendBuf(sb, buf) {
+    await new Promise((res, rej) => {
+      sb.addEventListener('updateend', res, {once:true});
+      sb.addEventListener('error',     rej, {once:true});
+      sb.appendBuffer(buf);
+    });
+  }
+
+  // Fetch both in parallel
+  const [vBuf, aBuf] = await Promise.all([
+    fetchBuf(videoUrl),
+    canA ? fetchBuf(audioUrl).catch(()=>null) : Promise.resolve(null),
+  ]);
+
+  await appendBuf(vSrc, vBuf);
+  if (aSrc && aBuf) await appendBuf(aSrc, aBuf);
+
+  ms.endOfStream();
 }
 
 async function playVideo(el) {
@@ -348,72 +397,35 @@ async function playVideo(el) {
   try {
     const videoUrl = await resolveVideoUrl(post?.data||{}, permalink);
     if (!videoUrl) throw new Error('não encontrado');
-
     const audioUrl = audioUrlFromVideo(videoUrl);
 
-    // Build the player container
     el.parentElement.innerHTML = `<div class="vid-player-wrap" id="vp_${id}">
       <video controls autoplay playsinline
         style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
-      ${audioUrl ? `<audio src="${esc(audioUrl)}" preload="auto" style="display:none"></audio>` : ''}
+      <div class="vid-loading" id="mux_${id}" style="position:relative;padding:10px 0">
+        <div class="spinner"></div><span class="vid-loading-txt">carregando mídia…</span>
+      </div>
     </div>`;
 
-    const wrap  = document.getElementById('vp_'+id);
-    const vid   = wrap.querySelector('video');
-    const aud   = wrap.querySelector('audio');
+    const vid     = document.querySelector(`#vp_${id} video`);
+    const muxInfo = document.getElementById('mux_'+id);
 
-    if (aud) {
-      let audReady = false;
-
-      // If audio 404s or errors, just remove it silently
-      aud.addEventListener('error', () => { aud.remove() }, { once: true });
-
-      // Once audio can play, mark as ready
-      aud.addEventListener('canplay', () => { audReady = true }, { once: true });
-
-      const sync = () => {
-        if (!audReady) return;
-        if (Math.abs(aud.currentTime - vid.currentTime) > 0.3) aud.currentTime = vid.currentTime;
-      };
-
-      vid.addEventListener('play', () => {
-        if (!audReady) return;
-        aud.currentTime = vid.currentTime;
-        aud.play().catch(()=>{});
-      });
-      vid.addEventListener('pause',       () => aud.pause());
-      vid.addEventListener('seeked',      () => { if (audReady) aud.currentTime = vid.currentTime });
-      vid.addEventListener('ratechange',  () => { aud.playbackRate = vid.playbackRate });
-      vid.addEventListener('volumechange',() => { aud.volume = vid.volume; aud.muted = vid.muted });
-      vid.addEventListener('timeupdate',  sync);
-
-      // Start loading audio now
-      aud.load();
+    try {
+      await muxIntoVideo(vid, videoUrl, audioUrl);
+      muxInfo?.remove();
+      vid.play().catch(()=>{});
+    } catch(muxErr) {
+      // MediaSource failed — fallback to plain src (no audio but at least shows video)
+      muxInfo?.remove();
+      vid.src = videoUrl;
+      vid.muted = false;
+      vid.play().catch(()=>{ vid.muted = true; vid.play().catch(()=>{}) });
+      toast('áudio indisponível neste browser');
     }
-
-    vid.src = videoUrl;
-    vid.muted = true; // start muted so autoplay is allowed
-    vid.play().catch(()=>{});
-
-    // As soon as user interacts with the video, unmute both
-    const unmute = () => {
-      vid.muted = false;
-      if (audReady) { aud.muted = false; aud.volume = 1; }
-      wrap.removeEventListener('click', unmute);
-    };
-    wrap.addEventListener('click', unmute);
-
-    // Also unmute automatically once audio is loaded and user has already interacted
-    aud?.addEventListener('canplay', () => {
-      audReady = true;
-      // try to unmute silently — browsers allow if user already touched the page
-      vid.muted = false;
-      if (aud) { aud.muted = false; aud.volume = 1; aud.play().catch(()=>{}); }
-    }, { once: true });
 
   } catch(e) {
     el.innerHTML = `<div class="vid-error">
-      Reprodução indisponível neste cliente.<br>
+      Reprodução indisponível.<br>
       <a href="https://reddit.com${permalink}" target="_blank" rel="noopener">▶ Abrir no Reddit</a>
     </div>`;
     toast('vídeo indisponível');
