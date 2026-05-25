@@ -331,19 +331,55 @@ function bindCards(root) {
 }
 
 /* ── Video playback ─────────────────────────────────────── */
+/* Derive audio URL from a Reddit video fallback URL.
+   Reddit stores audio at the same base path with DASH_AUDIO_128.mp4 or audio. */
+function audioUrlFromVideo(videoUrl) {
+  // e.g. https://v.redd.it/XXXX/DASH_720.mp4  →  https://v.redd.it/XXXX/DASH_AUDIO_128.mp4
+  const base = videoUrl.replace(/\/DASH_[^/]+\.mp4$/i, '');
+  if (base === videoUrl) return null; // pattern didn't match
+  return base + '/DASH_AUDIO_128.mp4';
+}
+
 async function playVideo(el) {
   const {permalink, id} = el.dataset;
   el.style.cursor = 'default';
   el.innerHTML = `<div class="vid-loading"><div class="spinner"></div><span class="vid-loading-txt">buscando vídeo…</span></div>`;
   const post = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
   try {
-    const url = await resolveVideoUrl(post?.data||{}, permalink);
-    if (!url) throw new Error('não encontrado');
-    el.parentElement.innerHTML = `<div class="vid-player-wrap">
-      <video src="${esc(url)}" controls autoplay playsinline muted
-        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video></div>`;
-    const vid = el.parentElement.querySelector('video');
-    vid?.play().catch(()=>{ if(vid) vid.muted=false });
+    const videoUrl = await resolveVideoUrl(post?.data||{}, permalink);
+    if (!videoUrl) throw new Error('não encontrado');
+
+    const audioUrl = audioUrlFromVideo(videoUrl);
+
+    // Build the player container
+    el.parentElement.innerHTML = `<div class="vid-player-wrap" id="vp_${id}">
+      <video controls autoplay playsinline
+        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
+      ${audioUrl ? `<audio src="${esc(audioUrl)}" preload="auto" style="display:none"></audio>` : ''}
+    </div>`;
+
+    const wrap  = document.getElementById('vp_'+id);
+    const vid   = wrap.querySelector('video');
+    const aud   = wrap.querySelector('audio');
+
+    if (aud) {
+      /* Sync audio to video */
+      const sync = () => { if (Math.abs(aud.currentTime - vid.currentTime) > 0.25) aud.currentTime = vid.currentTime; };
+      vid.addEventListener('play',   () => { sync(); aud.play().catch(()=>{}) });
+      vid.addEventListener('pause',  () => aud.pause());
+      vid.addEventListener('seeked', () => { aud.currentTime = vid.currentTime });
+      vid.addEventListener('ratechange', () => { aud.playbackRate = vid.playbackRate });
+      vid.addEventListener('volumechange', () => { aud.volume = vid.volume; aud.muted = vid.muted });
+      vid.addEventListener('timeupdate', sync);
+
+      // Check audio actually exists (404 = no separate audio stream)
+      const head = await fetch(audioUrl, {method:'HEAD'}).catch(()=>null);
+      if (!head || !head.ok) { aud.remove() } // silent gif/clip — no audio track
+    }
+
+    vid.src = videoUrl;
+    vid.play().catch(()=>{});
+
   } catch(e) {
     el.innerHTML = `<div class="vid-error">
       Reprodução indisponível neste cliente.<br>
