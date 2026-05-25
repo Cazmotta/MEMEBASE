@@ -480,9 +480,28 @@ $('modal-dl').onclick = () => { if(_murl) dlImg(_murl) };
 $('modal-img').addEventListener('contextmenu', e => e.stopPropagation());
 
 /* ── Download ── */
-function dlImg(url) {
-  window.open(url, '_blank', 'noopener');
-  toast('segure a imagem → salvar na galeria 📥');
+async function dlImg(url) {
+  toast('baixando…');
+  try {
+    // Pega a img já carregada no DOM (evita nova requisição e CORS)
+    const domImg = document.querySelector(`.cimg[data-full="${CSS.escape(url)}"]`) || $('modal-img');
+    if (!domImg || !domImg.complete || domImg.naturalWidth === 0) throw new Error('img not ready');
+    const canvas = document.createElement('canvas');
+    canvas.width = domImg.naturalWidth;
+    canvas.height = domImg.naturalHeight;
+    canvas.getContext('2d').drawImage(domImg, 0, 0);
+    canvas.toBlob(blob => {
+      if (!blob) { toast('não foi possível baixar :('); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'meme_' + Date.now() + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast('imagem baixada ✓');
+    }, 'image/png');
+  } catch {
+    toast('clique na imagem → clique com botão direito → salvar 🖼');
+  }
 }
 
 /* ── Save ── */
