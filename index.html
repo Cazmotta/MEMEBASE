@@ -50,10 +50,12 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
 .vid-play-btn{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.75);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;pointer-events:none}
 .vid-placeholder{width:100%;height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);font-size:40px}
 .media-badge{position:absolute;top:10px;left:10px;padding:3px 8px;border-radius:4px;background:rgba(0,0,0,.8);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.5px;color:var(--muted2)}
-.vid-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.6);gap:12px}
-.vid-loading-txt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2)}
+.vid-loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.7);gap:12px;z-index:2}
+.vid-loading-txt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2)}
+.vid-player-wrap{position:relative;background:#000}
 .vid-player-wrap video{width:100%;display:block;max-height:500px;background:#000;outline:none}
-.vid-error{padding:20px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8}
+.vid-audio-note{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:6px 12px;background:rgba(0,0,0,.5);text-align:center}
+.vid-error{padding:20px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:2}
 .vid-error a{color:var(--muted2);text-decoration:underline}
 .link-wrap{padding:12px 16px}
 .link-inner{display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;text-decoration:none}
@@ -81,6 +83,12 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
 .sub-add-row input:focus{border-color:var(--line3)}
 .btn-block{width:100%;padding:14px;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;outline:none;margin-top:8px;touch-action:manipulation}
 .btn-danger{background:none;border:1px solid #3a1515;color:#c44}
+/* modal overlay for image viewer */
+#img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100;flex-direction:column;align-items:center;justify-content:center}
+#img-modal.open{display:flex}
+#img-modal img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:4px}
+#img-modal-close{position:absolute;top:calc(var(--st)+14px);right:16px;width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--line2);color:var(--white);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#img-modal-dl{position:absolute;bottom:calc(var(--sb)+24px);right:16px;padding:12px 20px;border-radius:8px;background:var(--bg3);border:1px solid var(--line2);color:var(--white);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
 #toast{position:fixed;bottom:calc(var(--sb)+24px);left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid var(--line2);border-radius:20px;padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.9);transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:999;pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0)}
 </style>
@@ -90,8 +98,8 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
   <header>
     <div class="wordmark"><b>MEME</b>BASE</div>
     <div class="hdr-right">
-      <button class="icon-btn" id="refresh-btn">↺</button>
-      <button class="icon-btn" id="cfg-btn">⚙</button>
+      <button class="icon-btn" id="refresh-btn" title="Recarregar">↺</button>
+      <button class="icon-btn" id="cfg-btn" title="Config">⚙</button>
     </div>
   </header>
   <div id="tab-bar">
@@ -140,23 +148,31 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
           <button class="btn-block btn-danger" id="clear-btn">limpar posts salvos</button>
         </div>
         <div style="text-align:center;padding:16px 0 8px">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">memebase v1.3 · reddit jsonp</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">memebase v2.0 · reddit jsonp</span>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Image viewer modal -->
+<div id="img-modal">
+  <button id="img-modal-close">✕</button>
+  <img id="img-modal-img" src="" alt=""/>
+  <button id="img-modal-dl">↓ baixar imagem</button>
+</div>
+
 <div id="toast"></div>
 
 <script>
-/* ══════════════════════════════════════════════════════════
-   MEMEBASE  —  Reddit via JSONP (no CORS issues)
-   Reddit supports ?jsonp=callback natively on .json endpoints
-══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   MEMEBASE v2.0
+   Fixes: áudio de vídeo sincronizado, download de imagem via modal
+═══════════════════════════════════════════════ */
 
 const DEFAULT_SUBS = ['eu_nvr','diretodozapzap','botecodoreddit','MemesBrasil','MemesBR','MEMEBRASIL','antimemeBR','ShitpostBR'];
 
-/* ── JSONP helper ───────────────────────────────────────── */
+/* ── JSONP ── */
 let _cbId = 0;
 function jsonp(url, timeout = 10000) {
   return new Promise((resolve, reject) => {
@@ -166,14 +182,14 @@ function jsonp(url, timeout = 10000) {
     let s;
     window[cb] = data => { cleanup(); resolve(data) };
     s = document.createElement('script');
-    s.onerror = () => { cleanup(); reject(new Error('script error')) };
+    s.onerror = () => { cleanup(); reject(new Error('network error')) };
     const sep = url.includes('?') ? '&' : '?';
     s.src = url + sep + 'jsonp=' + cb;
     document.head.appendChild(s);
   });
 }
 
-/* ── State ──────────────────────────────────────────────── */
+/* ── State ── */
 const S = {
   subs:      JSON.parse(localStorage.getItem('mb_subs')  || 'null') || [...DEFAULT_SUBS],
   saved:     JSON.parse(localStorage.getItem('mb_saved') || '[]'),
@@ -182,18 +198,22 @@ const S = {
   posts: [], loading: false,
 };
 
-/* ── Utils ──────────────────────────────────────────────── */
-const $       = id => document.getElementById(id);
+/* ── Helpers ── */
+const $ = id => document.getElementById(id);
 let toastT;
-const toast   = msg => { const el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000) };
+const toast = msg => {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3000);
+};
 const saveSubs  = () => localStorage.setItem('mb_subs',  JSON.stringify(S.subs));
 const saveSaved = () => localStorage.setItem('mb_saved', JSON.stringify(S.saved));
 const saveCfg   = () => localStorage.setItem('mb_cfg',   JSON.stringify(S.cfg));
 const isSaved   = id => S.saved.some(p => p.data.id === id);
 const fmtScore  = n  => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
 const esc       = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const unesc     = s  => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
 
-/* ── Media helpers ──────────────────────────────────────── */
+/* ── Media utils ── */
 function mediaType(p) {
   const d = p.data;
   if (d.is_video || d.post_hint === 'hosted:video') return 'video';
@@ -202,43 +222,80 @@ function mediaType(p) {
   if (d.preview?.images?.[0]) return 'image';
   return 'link';
 }
+
 function imgUrl(p) {
   const d = p.data;
   if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(d.url||'')) return d.url;
   const src = d.preview?.images?.[0]?.source?.url || '';
-  return src.replace(/&amp;/g,'&') || null;
-}
-function thumbUrl(p) {
-  const src = p.data.preview?.images?.[0]?.source?.url || '';
-  if (src) return src.replace(/&amp;/g,'&');
-  const t = p.data.thumbnail||'';
-  return t.startsWith('http') ? t : null;
-}
-function extractVideoUrl(d) {
-  const rv = d.media?.reddit_video || d.secure_media?.reddit_video;
-  if (rv?.fallback_url) return rv.fallback_url.split('?')[0];
-  if (/\.gifv(\?|$)/i.test(d.url||'')) return d.url.replace('.gifv','.mp4');
-  if (/\.(mp4|webm)(\?|$)/i.test(d.url||'')) return d.url;
-  const pv = d.preview?.reddit_video_preview || d.preview?.images?.[0]?.variants?.mp4?.source;
-  if (pv?.url) return pv.url.replace(/&amp;/g,'&');
-  return null;
-}
-async function resolveVideoUrl(postData, permalink) {
-  let url = extractVideoUrl(postData);
-  if (url) return url;
-  try {
-    const j = await jsonp(`https://www.reddit.com${permalink}.json?raw_json=1`);
-    const fresh = j[0]?.data?.children?.[0]?.data;
-    if (fresh) url = extractVideoUrl(fresh);
-  } catch(_) {}
-  return url || null;
+  return src ? unesc(src) : null;
 }
 
-/* ── Fetch feed ─────────────────────────────────────────── */
+function thumbUrl(p) {
+  const src = p.data.preview?.images?.[0]?.source?.url || '';
+  if (src) return unesc(src);
+  const t = p.data.thumbnail || '';
+  return t.startsWith('http') ? t : null;
+}
+
+/* Extract Reddit video URLs — video + multiple audio candidates */
+function extractVideoSources(d) {
+  const rv = d.media?.reddit_video || d.secure_media?.reddit_video;
+  let videoUrl = null;
+  const audioCandidates = [];
+
+  if (rv) {
+    videoUrl = rv.fallback_url?.split('?')[0] || null;
+    // Reddit stores audio at same base with different suffixes
+    if (videoUrl) {
+      const base = videoUrl.replace(/\/DASH_[^/?#]+/i, '');
+      audioCandidates.push(
+        base + '/DASH_AUDIO_128.mp4',
+        base + '/DASH_audio.mp4',
+        base + '/audio',
+      );
+    }
+  }
+
+  if (!videoUrl && /\.gifv(\?|$)/i.test(d.url||'')) videoUrl = d.url.replace('.gifv','.mp4');
+  if (!videoUrl && /\.(mp4|webm)(\?|$)/i.test(d.url||'')) videoUrl = d.url;
+
+  const pv = d.preview?.reddit_video_preview || d.preview?.images?.[0]?.variants?.mp4?.source;
+  if (!videoUrl && pv?.url) videoUrl = unesc(pv.url);
+
+  return { videoUrl, audioCandidates };
+}
+
+async function resolveVideoSources(postData, permalink) {
+  let { videoUrl, audioCandidates } = extractVideoSources(postData);
+  if (!videoUrl) {
+    // Fetch the post JSON to get fresh data
+    try {
+      const j = await jsonp(`https://www.reddit.com${permalink}.json?raw_json=1`);
+      const fresh = j[0]?.data?.children?.[0]?.data;
+      if (fresh) ({ videoUrl, audioCandidates } = extractVideoSources(fresh));
+    } catch(_) {}
+  }
+  return { videoUrl, audioCandidates };
+}
+
+/* ── Probe a URL via HEAD (no-cors fallback) ── */
+async function urlExists(url) {
+  try {
+    const r = await fetch(url, { method: 'HEAD', mode: 'cors' });
+    return r.ok;
+  } catch {
+    // cors blocked — assume it might exist and let the audio element decide
+    return true;
+  }
+}
+
+/* ── Fetch feed ── */
 async function fetchSub(sub, sort, limit) {
   const url = `https://www.reddit.com/r/${sub}/${sort}.json?limit=${limit}&raw_json=1`;
   const j = await jsonp(url);
-  return (j.data?.children || []).filter(p => !p.data.stickied && (S.cfg.nsfw || !p.data.over_18));
+  return (j.data?.children || []).filter(p =>
+    !p.data.stickied && (S.cfg.nsfw || !p.data.over_18)
+  );
 }
 
 async function loadFeed() {
@@ -255,7 +312,7 @@ async function loadFeed() {
       if (r.status === 'fulfilled') S.posts.push(...r.value);
       else failed++;
     });
-    S.posts.sort((a,b) => b.data.score - a.data.score);
+    S.posts.sort((a, b) => b.data.score - a.data.score);
     if (!S.posts.length && failed === subs.length) throw new Error('todos os subs falharam');
     renderFeed();
   } catch(e) {
@@ -264,7 +321,7 @@ async function loadFeed() {
   S.loading = false;
 }
 
-/* ── Render ─────────────────────────────────────────────── */
+/* ── Render ── */
 function renderFeed() {
   $('post-count').textContent = `${S.posts.length} posts`;
   if (!S.posts.length) {
@@ -274,10 +331,11 @@ function renderFeed() {
   $('feed-view').innerHTML = S.posts.map(cardHtml).join('');
   bindCards($('feed-view'));
 }
+
 function renderSaved() {
   updateBadge();
   if (!S.saved.length) {
-    $('saved-view').innerHTML = `<div class="loader"><span class="empty-msg">nada salvo ainda.<br>salve posts do feed.</span></div>`;
+    $('saved-view').innerHTML = `<div class="loader"><span class="empty-msg">nada salvo ainda.\nsalve posts do feed.</span></div>`;
     return;
   }
   $('saved-view').innerHTML = S.saved.slice().reverse().map(cardHtml).join('');
@@ -288,14 +346,17 @@ function cardHtml(p) {
   const d = p.data, type = mediaType(p), saved = isSaved(d.id);
   const permalink = `https://reddit.com${d.permalink}`;
   let media = '';
+
   if (type === 'image') {
     const url = imgUrl(p);
-    media = url ? `<div class="card-media"><img src="${esc(url)}" loading="lazy"/></div>` : '';
+    media = url
+      ? `<div class="card-media"><img src="${esc(url)}" loading="lazy" data-full="${esc(url)}" class="img-clickable" style="cursor:zoom-in"/></div>`
+      : '';
   } else if (type === 'video') {
     const thumb = thumbUrl(p);
     media = `<div class="card-media">
-      <div class="vid-wrap" data-permalink="${esc(d.permalink)}" data-id="${d.id}">
-        ${thumb?`<img src="${esc(thumb)}" loading="lazy"/>`:`<div class="vid-placeholder">🎬</div>`}
+      <div class="vid-wrap" data-permalink="${esc(d.permalink)}" data-id="${esc(d.id)}">
+        ${thumb ? `<img src="${esc(thumb)}" loading="lazy"/>` : `<div class="vid-placeholder">🎬</div>`}
         <div class="vid-play-btn">▶</div>
         <span class="media-badge">VÍD</span>
       </div></div>`;
@@ -305,6 +366,7 @@ function cardHtml(p) {
       : `<span style="font-size:20px">🔗</span>`;
     media = `<div class="link-wrap"><a class="link-inner" href="${esc(d.url)}" target="_blank" rel="noopener">${thumb}<span>${esc(d.domain||d.url||'link')}</span></a></div>`;
   }
+
   return `<div class="post-card" data-id="${d.id}">
     <div class="card-meta">
       <span class="sub-tag">r/${esc(d.subreddit)}</span>
@@ -313,9 +375,9 @@ function cardHtml(p) {
     <div class="card-title">${esc(d.title)}</div>
     ${media}
     <div class="card-actions">
-      <button class="action-btn btn-save${saved?' saved':''}" data-id="${d.id}">${saved?'★ salvo':'☆ salvar'}</button>
-      ${type==='image'?`<button class="action-btn btn-dl" data-id="${d.id}" data-type="image">↓ img</button>`:''}
-      ${type==='video'?`<button class="action-btn btn-dl" data-id="${d.id}" data-type="video" data-permalink="${esc(d.permalink)}">↓ vid</button>`:''}
+      <button class="action-btn btn-save${saved?' saved':''}" data-id="${d.id}">${saved ? '★ salvo' : '☆ salvar'}</button>
+      ${type === 'image' ? `<button class="action-btn btn-img-dl" data-id="${d.id}">↓ img</button>` : ''}
+      ${type === 'video' ? `<button class="action-btn btn-vid-dl" data-id="${d.id}" data-permalink="${esc(d.permalink)}">↓ vid</button>` : ''}
       <div class="action-spacer"></div>
       <button class="action-btn btn-share" data-permalink="${esc(d.permalink)}" data-title="${esc(d.title)}">𝕏</button>
       <a class="action-btn" href="${esc(permalink)}" target="_blank" rel="noopener">↗</a>
@@ -324,210 +386,287 @@ function cardHtml(p) {
 }
 
 function bindCards(root) {
-  root.querySelectorAll('.btn-save').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();toggleSave(b.dataset.id,b)}));
-  root.querySelectorAll('.btn-dl').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();dlPost(b)}));
-  root.querySelectorAll('.btn-share').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();shareX(b.dataset.permalink,b.dataset.title)}));
-  root.querySelectorAll('.vid-wrap').forEach(el => el.addEventListener('click', ()=>playVideo(el)));
+  root.querySelectorAll('.btn-save').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); toggleSave(b.dataset.id, b) }));
+  root.querySelectorAll('.btn-img-dl').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); dlImage(b) }));
+  root.querySelectorAll('.btn-vid-dl').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); dlVideo(b) }));
+  root.querySelectorAll('.btn-share').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); shareX(b.dataset.permalink, b.dataset.title) }));
+  root.querySelectorAll('.vid-wrap').forEach(el =>
+    el.addEventListener('click', () => playVideo(el)));
+  root.querySelectorAll('.img-clickable').forEach(img =>
+    img.addEventListener('click', () => openImgModal(img.dataset.full)));
 }
 
-/* ── Video playback ─────────────────────────────────────── */
-/* Derive audio URL from a Reddit video fallback URL.
-   Reddit stores audio at the same base path with DASH_AUDIO_128.mp4 or audio. */
-function audioUrlFromVideo(videoUrl) {
-  // e.g. https://v.redd.it/XXXX/DASH_720.mp4  →  https://v.redd.it/XXXX/DASH_AUDIO_128.mp4
-  const base = videoUrl.replace(/\/DASH_[^/]+\.mp4$/i, '');
-  if (base === videoUrl) return null; // pattern didn't match
-  return base + '/DASH_AUDIO_128.mp4';
+/* ═══════════════════════════
+   IMAGE MODAL + DOWNLOAD
+═══════════════════════════ */
+let _currentImgUrl = null;
+
+function openImgModal(url) {
+  _currentImgUrl = url;
+  $('img-modal-img').src = url;
+  $('img-modal').classList.add('open');
+}
+$('img-modal-close').addEventListener('click', () => $('img-modal').classList.remove('open'));
+$('img-modal').addEventListener('click', e => { if (e.target === $('img-modal')) $('img-modal').classList.remove('open') });
+
+$('img-modal-dl').addEventListener('click', async () => {
+  if (!_currentImgUrl) return;
+  await downloadUrl(_currentImgUrl, 'meme.jpg');
+});
+
+function dlImage(btn) {
+  const post = S.posts.find(x => x.data.id === btn.dataset.id) || S.saved.find(x => x.data.id === btn.dataset.id);
+  if (!post) return;
+  const url = imgUrl(post);
+  if (!url) { toast('url não encontrada'); return; }
+  openImgModal(url); // open modal so user can tap "baixar" or long-press
 }
 
-async function playVideo(el) {
-  const {permalink, id} = el.dataset;
-  el.style.cursor = 'default';
-  el.innerHTML = `<div class="vid-loading"><div class="spinner"></div><span class="vid-loading-txt">buscando vídeo…</span></div>`;
-  const post = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
+/* ─── Universal download helper ─── */
+async function downloadUrl(url, filename) {
+  toast('baixando…');
   try {
-    const videoUrl = await resolveVideoUrl(post?.data||{}, permalink);
-    if (!videoUrl) throw new Error('não encontrado');
-
-    const audioUrl = audioUrlFromVideo(videoUrl);
-
-    // Build the player container
-    el.parentElement.innerHTML = `<div class="vid-player-wrap" id="vp_${id}">
-      <video controls autoplay playsinline
-        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
-      ${audioUrl ? `<audio src="${esc(audioUrl)}" preload="auto" style="display:none"></audio>` : ''}
-    </div>`;
-
-    const wrap  = document.getElementById('vp_'+id);
-    const vid   = wrap.querySelector('video');
-    const aud   = wrap.querySelector('audio');
-
-    if (aud) {
-      let audReady = false;
-
-      // If audio 404s or errors, just remove it silently
-      aud.addEventListener('error', () => { aud.remove() }, { once: true });
-
-      // Once audio can play, mark as ready
-      aud.addEventListener('canplay', () => { audReady = true }, { once: true });
-
-      const sync = () => {
-        if (!audReady) return;
-        if (Math.abs(aud.currentTime - vid.currentTime) > 0.3) aud.currentTime = vid.currentTime;
-      };
-
-      vid.addEventListener('play', () => {
-        if (!audReady) return;
-        aud.currentTime = vid.currentTime;
-        aud.play().catch(()=>{});
-      });
-      vid.addEventListener('pause',       () => aud.pause());
-      vid.addEventListener('seeked',      () => { if (audReady) aud.currentTime = vid.currentTime });
-      vid.addEventListener('ratechange',  () => { aud.playbackRate = vid.playbackRate });
-      vid.addEventListener('volumechange',() => { aud.volume = vid.volume; aud.muted = vid.muted });
-      vid.addEventListener('timeupdate',  sync);
-
-      // Start loading audio now
-      aud.load();
-    }
-
-    vid.src = videoUrl;
-    vid.muted = true; // start muted so autoplay is allowed
-    vid.play().catch(()=>{});
-
-    // As soon as user interacts with the video, unmute both
-    const unmute = () => {
-      vid.muted = false;
-      if (audReady) { aud.muted = false; aud.volume = 1; }
-      wrap.removeEventListener('click', unmute);
-    };
-    wrap.addEventListener('click', unmute);
-
-    // Also unmute automatically once audio is loaded and user has already interacted
-    aud?.addEventListener('canplay', () => {
-      audReady = true;
-      // try to unmute silently — browsers allow if user already touched the page
-      vid.muted = false;
-      if (aud) { aud.muted = false; aud.volume = 1; aud.play().catch(()=>{}); }
-    }, { once: true });
-
-  } catch(e) {
-    el.innerHTML = `<div class="vid-error">
-      Reprodução indisponível neste cliente.<br>
-      <a href="https://reddit.com${permalink}" target="_blank" rel="noopener">▶ Abrir no Reddit</a>
-    </div>`;
-    toast('vídeo indisponível');
+    // Try fetch → blob → anchor (works when CORS is open)
+    const r = await fetch(url, { mode: 'cors' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 2000);
+    toast('download concluído ✓');
+  } catch {
+    // Reddit blocks CORS downloads — open in new tab as fallback
+    window.open(url, '_blank', 'noopener');
+    toast('aberto em nova aba — salve com long-press');
   }
 }
 
-/* ── Download ───────────────────────────────────────────── */
-async function dlPost(btn) {
-  const {id, type, permalink} = btn.dataset;
-  const post = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
+/* ═══════════════════════════
+   VIDEO PLAYBACK WITH AUDIO
+   Strategy:
+   1. Load video in <video> (muted so autoplay works)
+   2. In parallel, probe audio URL candidates via HEAD
+   3. Sync <audio> element to video play/pause/seek
+   4. On first user interaction unmute video
+═══════════════════════════ */
+async function playVideo(el) {
+  const { permalink, id } = el.dataset;
+  el.innerHTML = `<div class="vid-loading-overlay"><div class="spinner"></div><span class="vid-loading-txt">buscando vídeo…</span></div>`;
+  el.style.cursor = 'default';
+
+  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
+
+  try {
+    const { videoUrl, audioCandidates } = await resolveVideoSources(post?.data || {}, permalink);
+    if (!videoUrl) throw new Error('URL de vídeo não encontrada');
+
+    // Build player HTML
+    const wrapper = document.createElement('div');
+    wrapper.className = 'vid-player-wrap';
+    wrapper.innerHTML = `
+      <video playsinline preload="auto"
+        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
+      <div class="vid-audio-note" id="an_${id}">🔇 toque no vídeo para ativar o áudio</div>`;
+
+    el.parentElement.replaceChild(wrapper, el);
+
+    const vid  = wrapper.querySelector('video');
+    const note = wrapper.querySelector('.vid-audio-note');
+
+    // Set video source and start playing muted
+    vid.src = videoUrl;
+    vid.muted = true;
+    vid.controls = true;
+    try { await vid.play() } catch(_) {}
+
+    // ── Audio sync ──
+    // We try each audio candidate and use the first that loads
+    let aud = null;
+    let audioReady = false;
+
+    const tryAudio = async () => {
+      for (const audioUrl of audioCandidates) {
+        const exists = await urlExists(audioUrl);
+        if (!exists) continue;
+
+        const a = new Audio();
+        a.src = audioUrl;
+        a.preload = 'auto';
+        a.volume = vid.volume;
+        a.muted = true; // start muted
+
+        const loaded = await new Promise(resolve => {
+          a.addEventListener('canplay', () => resolve(true), { once: true });
+          a.addEventListener('error',   () => resolve(false), { once: true });
+          setTimeout(() => resolve(false), 5000);
+          a.load();
+        });
+
+        if (loaded) { aud = a; break }
+      }
+
+      if (!aud) {
+        note.textContent = '(sem áudio separado)';
+        return;
+      }
+
+      audioReady = true;
+      note.textContent = '🔇 toque no vídeo para ativar o áudio';
+
+      // Sync helpers
+      const syncTime = () => {
+        if (Math.abs(aud.currentTime - vid.currentTime) > 0.3)
+          aud.currentTime = vid.currentTime;
+      };
+      vid.addEventListener('play',        () => { syncTime(); aud.play().catch(()=>{}) });
+      vid.addEventListener('pause',       () => aud.pause());
+      vid.addEventListener('seeked',      () => { aud.currentTime = vid.currentTime });
+      vid.addEventListener('ratechange',  () => { aud.playbackRate = vid.playbackRate });
+      vid.addEventListener('volumechange',() => { if (!aud.muted) { aud.volume = vid.volume } });
+      vid.addEventListener('ended',       () => aud.pause());
+
+      // Sync current position
+      if (!vid.paused) { aud.currentTime = vid.currentTime; aud.play().catch(()=>{}) }
+    };
+
+    tryAudio(); // non-blocking
+
+    // ── Unmute on first user tap ──
+    let unmuted = false;
+    const unmute = () => {
+      if (unmuted) return;
+      unmuted = true;
+      vid.muted = false;
+      if (aud && audioReady) {
+        aud.muted = false;
+        aud.volume = 1;
+        aud.currentTime = vid.currentTime;
+        if (!vid.paused) aud.play().catch(()=>{});
+      }
+      note.textContent = audioReady ? '🔊 áudio ativo' : '(sem áudio separado)';
+      setTimeout(() => { note.style.display = 'none' }, 2000);
+    };
+    wrapper.addEventListener('click', unmute, { once: true });
+
+  } catch(e) {
+    el.innerHTML = `<div class="vid-error">
+      Reprodução indisponível aqui.<br>
+      <a href="https://reddit.com${permalink}" target="_blank" rel="noopener">▶ Abrir no Reddit</a>
+    </div>`;
+    toast('erro: ' + e.message);
+  }
+}
+
+/* ── Video download ── */
+async function dlVideo(btn) {
+  const { id, permalink } = btn.dataset;
+  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
   if (!post) return;
   btn.classList.add('loading'); const orig = btn.textContent; btn.textContent = '…';
   try {
-    const rawUrl = type==='image' ? imgUrl(post) : await resolveVideoUrl(post.data, permalink);
-    if (!rawUrl) throw new Error('URL não encontrada');
-    toast('baixando…');
-    // For download we open in new tab if direct fetch fails (CORS on binary)
-    try {
-      const r = await fetch(rawUrl);
-      if (!r.ok) throw new Error('HTTP '+r.status);
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `meme_${id}.${type==='video'?'mp4':'jpg'}`;
-      document.body.appendChild(a); a.click();
-      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
-      toast(type==='video'?'vídeo salvo ✓':'imagem salva ✓');
-    } catch(_) {
-      // Fallback: open in new tab so user can long-press save
-      window.open(rawUrl,'_blank','noopener');
-      toast('aberto em nova aba — salve manualmente');
-    }
-  } catch(e) { toast('erro: '+e.message) }
+    const { videoUrl } = await resolveVideoSources(post.data, permalink);
+    if (!videoUrl) throw new Error('URL não encontrada');
+    await downloadUrl(videoUrl, `meme_${id}.mp4`);
+  } catch(e) { toast('erro: ' + e.message) }
   btn.classList.remove('loading'); btn.textContent = orig;
 }
 
-/* ── Save / Share ───────────────────────────────────────── */
+/* ── Save / Share ── */
 function toggleSave(id, btn) {
-  const p = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
+  const p = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
   if (!p) return;
   if (isSaved(id)) {
-    S.saved = S.saved.filter(x=>x.data.id!==id);
-    btn.textContent='☆ salvar'; btn.classList.remove('saved'); toast('removido');
+    S.saved = S.saved.filter(x => x.data.id !== id);
+    btn.textContent = '☆ salvar'; btn.classList.remove('saved'); toast('removido');
   } else {
-    S.saved.push(p); btn.textContent='★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
+    S.saved.push(p); btn.textContent = '★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
   }
   saveSaved(); updateBadge();
 }
 function updateBadge() {
-  const b=$('saved-badge'); b.textContent=S.saved.length;
-  S.saved.length?b.classList.remove('hidden'):b.classList.add('hidden');
+  const b = $('saved-badge'); b.textContent = S.saved.length;
+  S.saved.length ? b.classList.remove('hidden') : b.classList.add('hidden');
 }
 function shareX(permalink, title) {
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title+'\n\nhttps://reddit.com'+permalink)}`,'_blank','noopener');
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title+'\n\nhttps://reddit.com'+permalink)}`, '_blank', 'noopener');
 }
 
-/* ── Sub filter ─────────────────────────────────────────── */
+/* ── Sub filter ── */
 function renderFilter() {
   const el = $('sub-filter');
-  const pills = [{l:'tudo',v:'all'}, ...S.subs.map(s=>({l:'r/'+s,v:s}))];
-  el.innerHTML = pills.map(p=>`<div class="sub-pill${p.v===S.activeSub?' active':''}" data-v="${p.v}">${p.l}</div>`).join('');
-  el.querySelectorAll('.sub-pill').forEach(pill=>pill.addEventListener('click',()=>{S.activeSub=pill.dataset.v;renderFilter();loadFeed()}));
+  const pills = [{ l: 'tudo', v: 'all' }, ...S.subs.map(s => ({ l: 'r/'+s, v: s }))];
+  el.innerHTML = pills.map(p =>
+    `<div class="sub-pill${p.v === S.activeSub ? ' active' : ''}" data-v="${p.v}">${p.l}</div>`
+  ).join('');
+  el.querySelectorAll('.sub-pill').forEach(pill =>
+    pill.addEventListener('click', () => { S.activeSub = pill.dataset.v; renderFilter(); loadFeed() }));
 }
 
-/* ── Settings ───────────────────────────────────────────── */
+/* ── Settings ── */
 function renderSettings() {
-  $('sub-chips').innerHTML = S.subs.map(s=>
+  $('sub-chips').innerHTML = S.subs.map(s =>
     `<div class="sub-chip"><span>r/${s}</span><span class="sub-chip-rm" data-s="${s}">✕</span></div>`
   ).join('');
-  $('sub-chips').querySelectorAll('.sub-chip-rm').forEach(b=>b.addEventListener('click',()=>{
-    S.subs=S.subs.filter(x=>x!==b.dataset.s); saveSubs(); renderSettings(); renderFilter(); toast('r/'+b.dataset.s+' removido');
-  }));
-  $('nsfw-toggle').className='toggle'+(S.cfg.nsfw?' on':'');
-  $('limit-select').value=String(S.cfg.limit||25);
+  $('sub-chips').querySelectorAll('.sub-chip-rm').forEach(b =>
+    b.addEventListener('click', () => {
+      S.subs = S.subs.filter(x => x !== b.dataset.s);
+      saveSubs(); renderSettings(); renderFilter();
+      toast('r/'+b.dataset.s+' removido');
+    }));
+  $('nsfw-toggle').className = 'toggle' + (S.cfg.nsfw ? ' on' : '');
+  $('limit-select').value = String(S.cfg.limit || 25);
 }
 
-/* ── Tabs ───────────────────────────────────────────────── */
+/* ── Tabs ── */
 function switchTab(tab) {
   S.activeTab = tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
-  $('feed-view').classList.toggle('active',     tab==='feed');
-  $('saved-view').classList.toggle('active',    tab==='saved');
-  $('settings-view').classList.toggle('active', tab==='settings');
-  $('sub-filter').style.display = tab==='feed'?'flex':'none';
-  $('sort-bar').style.display   = tab==='feed'?'flex':'none';
-  if (tab==='saved')    renderSaved();
-  if (tab==='settings') renderSettings();
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $('feed-view').classList.toggle('active',     tab === 'feed');
+  $('saved-view').classList.toggle('active',    tab === 'saved');
+  $('settings-view').classList.toggle('active', tab === 'settings');
+  $('sub-filter').style.display = tab === 'feed' ? 'flex' : 'none';
+  $('sort-bar').style.display   = tab === 'feed' ? 'flex' : 'none';
+  if (tab === 'saved')    renderSaved();
+  if (tab === 'settings') renderSettings();
 }
 
-/* ── Events ─────────────────────────────────────────────── */
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
-document.querySelectorAll('.sort-btn').forEach(b=>b.addEventListener('click',()=>{
-  S.activeSort=b.dataset.sort;
-  document.querySelectorAll('.sort-btn').forEach(x=>x.classList.toggle('active',x.dataset.sort===S.activeSort));
-  loadFeed();
-}));
-$('refresh-btn').addEventListener('click',loadFeed);
-$('cfg-btn').addEventListener('click',()=>switchTab('settings'));
-$('nsfw-toggle').addEventListener('click',()=>{S.cfg.nsfw=!S.cfg.nsfw;saveCfg();renderSettings();toast('nsfw '+(S.cfg.nsfw?'ativado':'desativado'))});
-$('limit-select').addEventListener('change',e=>{S.cfg.limit=Number(e.target.value);saveCfg()});
-$('add-sub-btn').addEventListener('click',()=>{
-  const v=$('new-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
-  if(!v)return;
-  if(S.subs.includes(v)){toast('já existe');return}
-  S.subs.push(v);saveSubs();renderSettings();renderFilter();
-  $('new-sub').value='';toast('r/'+v+' adicionado');
+/* ── Wire up ── */
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => switchTab(t.dataset.tab)));
+document.querySelectorAll('.sort-btn').forEach(b =>
+  b.addEventListener('click', () => {
+    S.activeSort = b.dataset.sort;
+    document.querySelectorAll('.sort-btn').forEach(x =>
+      x.classList.toggle('active', x.dataset.sort === S.activeSort));
+    loadFeed();
+  }));
+$('refresh-btn').addEventListener('click', loadFeed);
+$('cfg-btn').addEventListener('click', () => switchTab('settings'));
+$('nsfw-toggle').addEventListener('click', () => {
+  S.cfg.nsfw = !S.cfg.nsfw; saveCfg(); renderSettings();
+  toast('nsfw ' + (S.cfg.nsfw ? 'ativado' : 'desativado'));
 });
-$('new-sub').addEventListener('keydown',e=>{if(e.key==='Enter')$('add-sub-btn').click()});
-$('clear-btn').addEventListener('click',()=>{
-  if(!confirm('Limpar todos os posts salvos?'))return;
-  S.saved=[];saveSaved();updateBadge();toast('salvos apagados');
+$('limit-select').addEventListener('change', e => { S.cfg.limit = Number(e.target.value); saveCfg() });
+$('add-sub-btn').addEventListener('click', () => {
+  const v = $('new-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
+  if (!v) return;
+  if (S.subs.includes(v)) { toast('já existe'); return }
+  S.subs.push(v); saveSubs(); renderSettings(); renderFilter();
+  $('new-sub').value = ''; toast('r/'+v+' adicionado');
+});
+$('new-sub').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-sub-btn').click() });
+$('clear-btn').addEventListener('click', () => {
+  if (!confirm('Limpar todos os posts salvos?')) return;
+  S.saved = []; saveSaved(); updateBadge(); toast('salvos apagados');
 });
 
-/* ── Init ───────────────────────────────────────────────── */
+/* ── Init ── */
 updateBadge(); renderFilter(); loadFeed();
 </script>
 </body>
