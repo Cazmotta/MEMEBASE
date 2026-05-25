@@ -477,26 +477,12 @@ function openModal(url) {
 $('modal-close').onclick = () => $('modal').classList.remove('open');
 $('modal').addEventListener('click', e => { if(e.target===$('modal')) $('modal').classList.remove('open') });
 $('modal-dl').onclick = () => { if(_murl) dlImg(_murl) };
+$('modal-img').addEventListener('contextmenu', e => e.stopPropagation());
 
 /* ── Download ── */
-async function dlImg(url, id) {
-  toast('baixando…');
-  const ext = url.split('.').pop().split('?')[0].toLowerCase();
-  const name = 'meme' + (id?'_'+id:'') + '.' + (/^(jpg|jpeg|png|gif|webp)$/.test(ext)?ext:'jpg');
-  try {
-    const r = await fetch(url, {mode:'cors'});
-    if(!r.ok) throw new Error();
-    const blob = await r.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 2000);
-    toast('download concluído ✓');
-  } catch {
-    window.open(url, '_blank', 'noopener');
-    toast('aberto em nova aba — salve com long-press');
-  }
+function dlImg(url) {
+  window.open(url, '_blank', 'noopener');
+  toast('segure a imagem → salvar na galeria 📥');
 }
 
 /* ── Save ── */
