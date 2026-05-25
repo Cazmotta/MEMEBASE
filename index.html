@@ -60,7 +60,7 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
 .link-inner span{font-size:12px;color:var(--muted2);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-actions{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
 .action-btn{display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:6px;border:1px solid var(--line2);background:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3px;color:var(--muted2);cursor:pointer;touch-action:manipulation;transition:border-color .15s,color .15s;white-space:nowrap;text-decoration:none}
-.action-btn:active{border-color:var(--line3);color:var(--white);background:var(--bg3)}
+.action-btn:active,.action-btn:hover{border-color:var(--line3);color:var(--white);background:var(--bg3)}
 .action-btn.saved{border-color:#555;color:var(--white);background:var(--bg3)}
 .action-btn.loading{opacity:.4;pointer-events:none}
 .action-spacer{flex:1}
@@ -68,7 +68,6 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
 .spinner{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);border-top-color:var(--muted2);animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty-msg{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:center;line-height:2}
-/* settings */
 .s-section{margin-bottom:28px}.s-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}.s-label::after{content:'';flex:1;height:1px;background:var(--line)}
 .s-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bg1);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
 .s-row-label{font-size:13px;color:var(--text)}.s-row-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px}
@@ -141,7 +140,7 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
           <button class="btn-block btn-danger" id="clear-btn">limpar posts salvos</button>
         </div>
         <div style="text-align:center;padding:16px 0 8px">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">memebase v1.2 · reddit api</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">memebase v1.3 · reddit jsonp</span>
         </div>
       </div>
     </div>
@@ -150,35 +149,31 @@ header{padding:calc(var(--st)+14px) calc(var(--sr)+var(--px)) 14px calc(var(--sl
 <div id="toast"></div>
 
 <script>
-/* ══ CONFIG ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   MEMEBASE  —  Reddit via JSONP (no CORS issues)
+   Reddit supports ?jsonp=callback natively on .json endpoints
+══════════════════════════════════════════════════════════ */
+
 const DEFAULT_SUBS = ['eu_nvr','diretodozapzap','botecodoreddit','MemesBrasil','MemesBR','MEMEBRASIL','antimemeBR','ShitpostBR'];
 
-/*
-  CORS workaround:
-  Reddit's JSON API (*.reddit.com) blocks browser fetches from arbitrary origins.
-  We use two public CORS proxies as fallbacks:
-    1. corsproxy.io   — wraps the request server-side
-    2. allorigins.win — alternative if #1 fails
-  Both are free, no-auth, and handle JSON correctly.
-*/
-const PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
-
-async function fetchJSON(url) {
-  let lastErr;
-  for (const proxy of PROXIES) {
-    try {
-      const r = await fetch(proxy(url), { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    } catch(e) { lastErr = e }
-  }
-  throw lastErr;
+/* ── JSONP helper ───────────────────────────────────────── */
+let _cbId = 0;
+function jsonp(url, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const cb = '__rdp' + (++_cbId);
+    const t = setTimeout(() => { cleanup(); reject(new Error('timeout')) }, timeout);
+    function cleanup() { clearTimeout(t); delete window[cb]; s?.remove() }
+    let s;
+    window[cb] = data => { cleanup(); resolve(data) };
+    s = document.createElement('script');
+    s.onerror = () => { cleanup(); reject(new Error('script error')) };
+    const sep = url.includes('?') ? '&' : '?';
+    s.src = url + sep + 'jsonp=' + cb;
+    document.head.appendChild(s);
+  });
 }
 
-/* ══ STATE ═══════════════════════════════════════════════ */
+/* ── State ──────────────────────────────────────────────── */
 const S = {
   subs:      JSON.parse(localStorage.getItem('mb_subs')  || 'null') || [...DEFAULT_SUBS],
   saved:     JSON.parse(localStorage.getItem('mb_saved') || '[]'),
@@ -187,13 +182,10 @@ const S = {
   posts: [], loading: false,
 };
 
-/* ══ UTILS ═══════════════════════════════════════════════ */
-const $ = id => document.getElementById(id);
+/* ── Utils ──────────────────────────────────────────────── */
+const $       = id => document.getElementById(id);
 let toastT;
-function toast(msg) {
-  const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3000);
-}
+const toast   = msg => { const el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),3000) };
 const saveSubs  = () => localStorage.setItem('mb_subs',  JSON.stringify(S.subs));
 const saveSaved = () => localStorage.setItem('mb_saved', JSON.stringify(S.saved));
 const saveCfg   = () => localStorage.setItem('mb_cfg',   JSON.stringify(S.cfg));
@@ -201,7 +193,7 @@ const isSaved   = id => S.saved.some(p => p.data.id === id);
 const fmtScore  = n  => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
 const esc       = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-/* ══ MEDIA HELPERS ═══════════════════════════════════════ */
+/* ── Media helpers ──────────────────────────────────────── */
 function mediaType(p) {
   const d = p.data;
   if (d.is_video || d.post_hint === 'hosted:video') return 'video';
@@ -210,21 +202,18 @@ function mediaType(p) {
   if (d.preview?.images?.[0]) return 'image';
   return 'link';
 }
-
 function imgUrl(p) {
   const d = p.data;
   if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(d.url||'')) return d.url;
   const src = d.preview?.images?.[0]?.source?.url || '';
   return src.replace(/&amp;/g,'&') || null;
 }
-
 function thumbUrl(p) {
   const src = p.data.preview?.images?.[0]?.source?.url || '';
   if (src) return src.replace(/&amp;/g,'&');
-  const t = p.data.thumbnail || '';
+  const t = p.data.thumbnail||'';
   return t.startsWith('http') ? t : null;
 }
-
 function extractVideoUrl(d) {
   const rv = d.media?.reddit_video || d.secure_media?.reddit_video;
   if (rv?.fallback_url) return rv.fallback_url.split('?')[0];
@@ -234,23 +223,21 @@ function extractVideoUrl(d) {
   if (pv?.url) return pv.url.replace(/&amp;/g,'&');
   return null;
 }
-
 async function resolveVideoUrl(postData, permalink) {
   let url = extractVideoUrl(postData);
   if (url) return url;
   try {
-    const apiUrl = `https://www.reddit.com${permalink}.json?raw_json=1`;
-    const j = await fetchJSON(apiUrl);
+    const j = await jsonp(`https://www.reddit.com${permalink}.json?raw_json=1`);
     const fresh = j[0]?.data?.children?.[0]?.data;
     if (fresh) url = extractVideoUrl(fresh);
   } catch(_) {}
   return url || null;
 }
 
-/* ══ FETCH FEED ══════════════════════════════════════════ */
+/* ── Fetch feed ─────────────────────────────────────────── */
 async function fetchSub(sub, sort, limit) {
   const url = `https://www.reddit.com/r/${sub}/${sort}.json?limit=${limit}&raw_json=1`;
-  const j = await fetchJSON(url);
+  const j = await jsonp(url);
   return (j.data?.children || []).filter(p => !p.data.stickied && (S.cfg.nsfw || !p.data.over_18));
 }
 
@@ -263,33 +250,37 @@ async function loadFeed() {
     const subs = S.activeSub === 'all' ? S.subs : [S.activeSub];
     const lim  = Number(S.cfg.limit) || 25;
     const res  = await Promise.allSettled(subs.map(s => fetchSub(s, S.activeSort, lim)));
-    res.forEach(r => { if (r.status === 'fulfilled') S.posts.push(...r.value) });
+    let failed = 0;
+    res.forEach(r => {
+      if (r.status === 'fulfilled') S.posts.push(...r.value);
+      else failed++;
+    });
     S.posts.sort((a,b) => b.data.score - a.data.score);
+    if (!S.posts.length && failed === subs.length) throw new Error('todos os subs falharam');
     renderFeed();
   } catch(e) {
-    $('feed-view').innerHTML = `<div class="loader"><span class="empty-msg">erro ao carregar<br>${e.message}</span></div>`;
+    $('feed-view').innerHTML = `<div class="loader"><span class="empty-msg">erro ao carregar<br>${esc(e.message)}</span></div>`;
   }
   S.loading = false;
 }
 
-/* ══ RENDER ══════════════════════════════════════════════ */
+/* ── Render ─────────────────────────────────────────────── */
 function renderFeed() {
   $('post-count').textContent = `${S.posts.length} posts`;
   if (!S.posts.length) {
     $('feed-view').innerHTML = `<div class="loader"><span class="empty-msg">nenhum post encontrado</span></div>`;
     return;
   }
-  $('feed-view').innerHTML = S.posts.map(p => cardHtml(p)).join('');
+  $('feed-view').innerHTML = S.posts.map(cardHtml).join('');
   bindCards($('feed-view'));
 }
-
 function renderSaved() {
   updateBadge();
   if (!S.saved.length) {
     $('saved-view').innerHTML = `<div class="loader"><span class="empty-msg">nada salvo ainda.<br>salve posts do feed.</span></div>`;
     return;
   }
-  $('saved-view').innerHTML = S.saved.slice().reverse().map(p => cardHtml(p)).join('');
+  $('saved-view').innerHTML = S.saved.slice().reverse().map(cardHtml).join('');
   bindCards($('saved-view'));
 }
 
@@ -297,7 +288,6 @@ function cardHtml(p) {
   const d = p.data, type = mediaType(p), saved = isSaved(d.id);
   const permalink = `https://reddit.com${d.permalink}`;
   let media = '';
-
   if (type === 'image') {
     const url = imgUrl(p);
     media = url ? `<div class="card-media"><img src="${esc(url)}" loading="lazy"/></div>` : '';
@@ -305,7 +295,7 @@ function cardHtml(p) {
     const thumb = thumbUrl(p);
     media = `<div class="card-media">
       <div class="vid-wrap" data-permalink="${esc(d.permalink)}" data-id="${d.id}">
-        ${thumb ? `<img src="${esc(thumb)}" loading="lazy"/>` : `<div class="vid-placeholder">🎬</div>`}
+        ${thumb?`<img src="${esc(thumb)}" loading="lazy"/>`:`<div class="vid-placeholder">🎬</div>`}
         <div class="vid-play-btn">▶</div>
         <span class="media-badge">VÍD</span>
       </div></div>`;
@@ -315,7 +305,6 @@ function cardHtml(p) {
       : `<span style="font-size:20px">🔗</span>`;
     media = `<div class="link-wrap"><a class="link-inner" href="${esc(d.url)}" target="_blank" rel="noopener">${thumb}<span>${esc(d.domain||d.url||'link')}</span></a></div>`;
   }
-
   return `<div class="post-card" data-id="${d.id}">
     <div class="card-meta">
       <span class="sub-tag">r/${esc(d.subreddit)}</span>
@@ -324,9 +313,9 @@ function cardHtml(p) {
     <div class="card-title">${esc(d.title)}</div>
     ${media}
     <div class="card-actions">
-      <button class="action-btn btn-save ${saved?'saved':''}" data-id="${d.id}">${saved?'★ salvo':'☆ salvar'}</button>
-      ${type==='image' ? `<button class="action-btn btn-dl" data-id="${d.id}" data-type="image">↓ baixar</button>` : ''}
-      ${type==='video' ? `<button class="action-btn btn-dl" data-id="${d.id}" data-type="video" data-permalink="${esc(d.permalink)}">↓ baixar</button>` : ''}
+      <button class="action-btn btn-save${saved?' saved':''}" data-id="${d.id}">${saved?'★ salvo':'☆ salvar'}</button>
+      ${type==='image'?`<button class="action-btn btn-dl" data-id="${d.id}" data-type="image">↓ img</button>`:''}
+      ${type==='video'?`<button class="action-btn btn-dl" data-id="${d.id}" data-type="video" data-permalink="${esc(d.permalink)}">↓ vid</button>`:''}
       <div class="action-spacer"></div>
       <button class="action-btn btn-share" data-permalink="${esc(d.permalink)}" data-title="${esc(d.title)}">𝕏</button>
       <a class="action-btn" href="${esc(permalink)}" target="_blank" rel="noopener">↗</a>
@@ -335,140 +324,143 @@ function cardHtml(p) {
 }
 
 function bindCards(root) {
-  root.querySelectorAll('.btn-save').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); toggleSave(b.dataset.id, b) }));
-  root.querySelectorAll('.btn-dl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); dlPost(b) }));
-  root.querySelectorAll('.btn-share').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); shareX(b.dataset.permalink, b.dataset.title) }));
-  root.querySelectorAll('.vid-wrap').forEach(el => el.addEventListener('click', () => playVideo(el)));
+  root.querySelectorAll('.btn-save').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();toggleSave(b.dataset.id,b)}));
+  root.querySelectorAll('.btn-dl').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();dlPost(b)}));
+  root.querySelectorAll('.btn-share').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();shareX(b.dataset.permalink,b.dataset.title)}));
+  root.querySelectorAll('.vid-wrap').forEach(el => el.addEventListener('click', ()=>playVideo(el)));
 }
 
-/* ══ VIDEO PLAYBACK ══════════════════════════════════════ */
+/* ── Video playback ─────────────────────────────────────── */
 async function playVideo(el) {
-  const { permalink, id } = el.dataset;
+  const {permalink, id} = el.dataset;
   el.style.cursor = 'default';
   el.innerHTML = `<div class="vid-loading"><div class="spinner"></div><span class="vid-loading-txt">buscando vídeo…</span></div>`;
-  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
+  const post = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
   try {
-    const url = await resolveVideoUrl(post?.data || {}, permalink);
-    if (!url) throw new Error('URL não encontrada');
+    const url = await resolveVideoUrl(post?.data||{}, permalink);
+    if (!url) throw new Error('não encontrado');
     el.parentElement.innerHTML = `<div class="vid-player-wrap">
       <video src="${esc(url)}" controls autoplay playsinline muted
-             style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video>
-    </div>`;
+        style="width:100%;display:block;max-height:500px;background:#000;outline:none"></video></div>`;
     const vid = el.parentElement.querySelector('video');
-    vid?.play().catch(() => { if(vid) vid.muted = false });
+    vid?.play().catch(()=>{ if(vid) vid.muted=false });
   } catch(e) {
     el.innerHTML = `<div class="vid-error">
-      Não foi possível reproduzir.<br>
+      Reprodução indisponível neste cliente.<br>
       <a href="https://reddit.com${permalink}" target="_blank" rel="noopener">▶ Abrir no Reddit</a>
     </div>`;
     toast('vídeo indisponível');
   }
 }
 
-/* ══ DOWNLOAD ════════════════════════════════════════════ */
+/* ── Download ───────────────────────────────────────────── */
 async function dlPost(btn) {
-  const { id, type, permalink } = btn.dataset;
-  const post = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
+  const {id, type, permalink} = btn.dataset;
+  const post = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
   if (!post) return;
   btn.classList.add('loading'); const orig = btn.textContent; btn.textContent = '…';
   try {
-    const rawUrl = type === 'image' ? imgUrl(post) : await resolveVideoUrl(post.data, permalink);
+    const rawUrl = type==='image' ? imgUrl(post) : await resolveVideoUrl(post.data, permalink);
     if (!rawUrl) throw new Error('URL não encontrada');
     toast('baixando…');
-    // Use proxy for download blob too (CORS)
-    const proxyUrl = PROXIES[0](rawUrl);
-    const r = await fetch(proxyUrl);
-    if (!r.ok) throw new Error('fetch ' + r.status);
-    const blob = await r.blob();
-    const ext  = type === 'video' ? 'mp4' : 'jpg';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = `meme_${id}.${ext}`;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1500);
-    toast(type === 'video' ? 'vídeo salvo ✓' : 'imagem salva ✓');
-  } catch(e) { toast('erro: ' + e.message) }
+    // For download we open in new tab if direct fetch fails (CORS on binary)
+    try {
+      const r = await fetch(rawUrl);
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `meme_${id}.${type==='video'?'mp4':'jpg'}`;
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+      toast(type==='video'?'vídeo salvo ✓':'imagem salva ✓');
+    } catch(_) {
+      // Fallback: open in new tab so user can long-press save
+      window.open(rawUrl,'_blank','noopener');
+      toast('aberto em nova aba — salve manualmente');
+    }
+  } catch(e) { toast('erro: '+e.message) }
   btn.classList.remove('loading'); btn.textContent = orig;
 }
 
-/* ══ SAVE / SHARE ════════════════════════════════════════ */
+/* ── Save / Share ───────────────────────────────────────── */
 function toggleSave(id, btn) {
-  const p = S.posts.find(x => x.data.id === id) || S.saved.find(x => x.data.id === id);
+  const p = S.posts.find(x=>x.data.id===id) || S.saved.find(x=>x.data.id===id);
   if (!p) return;
   if (isSaved(id)) {
-    S.saved = S.saved.filter(x => x.data.id !== id);
-    btn.textContent = '☆ salvar'; btn.classList.remove('saved'); toast('removido');
+    S.saved = S.saved.filter(x=>x.data.id!==id);
+    btn.textContent='☆ salvar'; btn.classList.remove('saved'); toast('removido');
   } else {
-    S.saved.push(p); btn.textContent = '★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
+    S.saved.push(p); btn.textContent='★ salvo'; btn.classList.add('saved'); toast('salvo ✓');
   }
   saveSaved(); updateBadge();
 }
 function updateBadge() {
-  const b = $('saved-badge'); b.textContent = S.saved.length;
-  S.saved.length ? b.classList.remove('hidden') : b.classList.add('hidden');
+  const b=$('saved-badge'); b.textContent=S.saved.length;
+  S.saved.length?b.classList.remove('hidden'):b.classList.add('hidden');
 }
 function shareX(permalink, title) {
-  const url = `https://reddit.com${permalink}`;
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title+'\n\n'+url)}`, '_blank', 'noopener');
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title+'\n\nhttps://reddit.com'+permalink)}`,'_blank','noopener');
 }
 
-/* ══ SUB FILTER ══════════════════════════════════════════ */
+/* ── Sub filter ─────────────────────────────────────────── */
 function renderFilter() {
   const el = $('sub-filter');
-  const pills = [{l:'tudo',v:'all'}, ...S.subs.map(s => ({l:'r/'+s, v:s}))];
-  el.innerHTML = pills.map(p => `<div class="sub-pill${p.v===S.activeSub?' active':''}" data-v="${p.v}">${p.l}</div>`).join('');
-  el.querySelectorAll('.sub-pill').forEach(pill => pill.addEventListener('click', () => { S.activeSub = pill.dataset.v; renderFilter(); loadFeed() }));
+  const pills = [{l:'tudo',v:'all'}, ...S.subs.map(s=>({l:'r/'+s,v:s}))];
+  el.innerHTML = pills.map(p=>`<div class="sub-pill${p.v===S.activeSub?' active':''}" data-v="${p.v}">${p.l}</div>`).join('');
+  el.querySelectorAll('.sub-pill').forEach(pill=>pill.addEventListener('click',()=>{S.activeSub=pill.dataset.v;renderFilter();loadFeed()}));
 }
 
-/* ══ SETTINGS ════════════════════════════════════════════ */
+/* ── Settings ───────────────────────────────────────────── */
 function renderSettings() {
-  $('sub-chips').innerHTML = S.subs.map(s =>
+  $('sub-chips').innerHTML = S.subs.map(s=>
     `<div class="sub-chip"><span>r/${s}</span><span class="sub-chip-rm" data-s="${s}">✕</span></div>`
   ).join('');
-  $('sub-chips').querySelectorAll('.sub-chip-rm').forEach(b => b.addEventListener('click', () => {
-    S.subs = S.subs.filter(x => x !== b.dataset.s); saveSubs(); renderSettings(); renderFilter(); toast('r/'+b.dataset.s+' removido');
+  $('sub-chips').querySelectorAll('.sub-chip-rm').forEach(b=>b.addEventListener('click',()=>{
+    S.subs=S.subs.filter(x=>x!==b.dataset.s); saveSubs(); renderSettings(); renderFilter(); toast('r/'+b.dataset.s+' removido');
   }));
-  $('nsfw-toggle').className = 'toggle' + (S.cfg.nsfw ? ' on' : '');
-  $('limit-select').value = String(S.cfg.limit || 25);
+  $('nsfw-toggle').className='toggle'+(S.cfg.nsfw?' on':'');
+  $('limit-select').value=String(S.cfg.limit||25);
 }
 
-/* ══ TABS ════════════════════════════════════════════════ */
+/* ── Tabs ───────────────────────────────────────────────── */
 function switchTab(tab) {
   S.activeTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  $('feed-view').classList.toggle('active',     tab === 'feed');
-  $('saved-view').classList.toggle('active',    tab === 'saved');
-  $('settings-view').classList.toggle('active', tab === 'settings');
-  $('sub-filter').style.display = tab === 'feed' ? 'flex' : 'none';
-  $('sort-bar').style.display   = tab === 'feed' ? 'flex' : 'none';
-  if (tab === 'saved')    renderSaved();
-  if (tab === 'settings') renderSettings();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  $('feed-view').classList.toggle('active',     tab==='feed');
+  $('saved-view').classList.toggle('active',    tab==='saved');
+  $('settings-view').classList.toggle('active', tab==='settings');
+  $('sub-filter').style.display = tab==='feed'?'flex':'none';
+  $('sort-bar').style.display   = tab==='feed'?'flex':'none';
+  if (tab==='saved')    renderSaved();
+  if (tab==='settings') renderSettings();
 }
 
-/* ══ EVENTS ══════════════════════════════════════════════ */
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
-document.querySelectorAll('.sort-btn').forEach(b => b.addEventListener('click', () => {
-  S.activeSort = b.dataset.sort;
-  document.querySelectorAll('.sort-btn').forEach(x => x.classList.toggle('active', x.dataset.sort === S.activeSort));
+/* ── Events ─────────────────────────────────────────────── */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+document.querySelectorAll('.sort-btn').forEach(b=>b.addEventListener('click',()=>{
+  S.activeSort=b.dataset.sort;
+  document.querySelectorAll('.sort-btn').forEach(x=>x.classList.toggle('active',x.dataset.sort===S.activeSort));
   loadFeed();
 }));
-$('refresh-btn').addEventListener('click', loadFeed);
-$('cfg-btn').addEventListener('click', () => switchTab('settings'));
-$('nsfw-toggle').addEventListener('click', () => { S.cfg.nsfw = !S.cfg.nsfw; saveCfg(); renderSettings(); toast('nsfw '+(S.cfg.nsfw?'ativado':'desativado')) });
-$('limit-select').addEventListener('change', e => { S.cfg.limit = Number(e.target.value); saveCfg() });
-$('add-sub-btn').addEventListener('click', () => {
-  const v = $('new-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
-  if (!v) return;
-  if (S.subs.includes(v)) { toast('já existe'); return }
-  S.subs.push(v); saveSubs(); renderSettings(); renderFilter();
-  $('new-sub').value = ''; toast('r/'+v+' adicionado');
+$('refresh-btn').addEventListener('click',loadFeed);
+$('cfg-btn').addEventListener('click',()=>switchTab('settings'));
+$('nsfw-toggle').addEventListener('click',()=>{S.cfg.nsfw=!S.cfg.nsfw;saveCfg();renderSettings();toast('nsfw '+(S.cfg.nsfw?'ativado':'desativado'))});
+$('limit-select').addEventListener('change',e=>{S.cfg.limit=Number(e.target.value);saveCfg()});
+$('add-sub-btn').addEventListener('click',()=>{
+  const v=$('new-sub').value.trim().replace(/^r\//,'').replace(/\s/g,'');
+  if(!v)return;
+  if(S.subs.includes(v)){toast('já existe');return}
+  S.subs.push(v);saveSubs();renderSettings();renderFilter();
+  $('new-sub').value='';toast('r/'+v+' adicionado');
 });
-$('new-sub').addEventListener('keydown', e => { if (e.key === 'Enter') $('add-sub-btn').click() });
-$('clear-btn').addEventListener('click', () => {
-  if (!confirm('Limpar todos os posts salvos?')) return;
-  S.saved = []; saveSaved(); updateBadge(); toast('salvos apagados');
+$('new-sub').addEventListener('keydown',e=>{if(e.key==='Enter')$('add-sub-btn').click()});
+$('clear-btn').addEventListener('click',()=>{
+  if(!confirm('Limpar todos os posts salvos?'))return;
+  S.saved=[];saveSaved();updateBadge();toast('salvos apagados');
 });
 
-/* ══ INIT ════════════════════════════════════════════════ */
+/* ── Init ───────────────────────────────────────────────── */
 updateBadge(); renderFilter(); loadFeed();
 </script>
 </body>
