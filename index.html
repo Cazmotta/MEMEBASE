@@ -194,10 +194,7 @@ header{padding:calc(var(--safe-t)+16px) 20px 16px;display:flex;align-items:cente
 
 <script>
 const DEFAULT_SUBS=['eu_nvr','diretodozapzap','botecodoreddit','MemesBrasil','MemesBR','MEMEBRASIL','antimemeBR','ShitpostBR'];
-const SAVER_ENDPOINTS=[
-  url=>`https://rxddit.com/api/info?url=${encodeURIComponent(url)}`,
-  url=>`https://red-dl.com/api/dl?url=${encodeURIComponent(url)}`,
-];
+const PROXY='/api/video';
 
 const S={
   subs:   JSON.parse(localStorage.getItem('mb_subs')  ||'null') || [...DEFAULT_SUBS],
@@ -335,16 +332,11 @@ function bindCards(root){
 
 async function fetchVideoUrl(permalink){
   const postUrl=`https://reddit.com${permalink}`;
-  for(const mkUrl of SAVER_ENDPOINTS){
-    try{
-      const r=await fetch(mkUrl(postUrl));
-      if(!r.ok) continue;
-      const j=await r.json();
-      const url=j.url||j.hd||j.sd||j.video||(Array.isArray(j.links)&&j.links[0]?.url)||null;
-      if(url) return url;
-    }catch(_){continue}
-  }
-  throw new Error('nenhum serviço disponível');
+  const r=await fetch(`${PROXY}?url=${encodeURIComponent(postUrl)}`);
+  if(!r.ok) throw new Error('proxy '+r.status);
+  const j=await r.json();
+  if(!j.url) throw new Error('video não encontrado');
+  return j.url;
 }
 async function playVideo(el){
   const permalink=el.dataset.permalink;
